@@ -11,6 +11,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const role = localStorage.getItem('userRole');
     if (!role) {
+      if (pathname?.startsWith('/dashboard/')) {
+        const portal = pathname.split('/')[2];
+        if (portal) {
+          router.push(`/login/${portal}`);
+          return;
+        }
+      }
       router.push('/login');
       return;
     }
