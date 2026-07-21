@@ -8,31 +8,64 @@ export default function StorePage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState<typeof mockProducts[0] | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<(typeof mockProducts[0] & { selectedSize?: string }) | null>(null);
+  const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
+  const [wishlist, setWishlist] = useState<string[]>([]);
+
+  const handleSizeSelect = (productId: string, size: string) => {
+    setSelectedSizes(prev => ({ ...prev, [productId]: size }));
+  };
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
     setIsLoggedIn(!!role);
+    if (role) {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      if (currentUser.email) {
+        const storedWishlist = JSON.parse(localStorage.getItem(`wishlist_${currentUser.email}`) || '[]');
+        setWishlist(storedWishlist);
+      }
+    }
   }, []);
+
+  const toggleWishlist = (productId: string) => {
+    if (!isLoggedIn) {
+      router.push('/login');
+      return;
+    }
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    if (!currentUser.email) return;
+
+    setWishlist(prev => {
+      const newWishlist = prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId];
+      
+      localStorage.setItem(`wishlist_${currentUser.email}`, JSON.stringify(newWishlist));
+      return newWishlist;
+    });
+  };
 
   const handlePurchaseClick = (product: typeof mockProducts[0]) => {
     if (!isLoggedIn) {
       router.push('/login');
       return;
     }
-    setSelectedProduct(product);
+    const size = selectedSizes[product.id] || (product.sizes ? product.sizes[0] : undefined);
+    setSelectedProduct({ ...product, selectedSize: size });
   };
 
   const handleAddToCart = (product: typeof mockProducts[0]) => {
+    const size = selectedSizes[product.id] || (product.sizes ? product.sizes[0] : undefined);
     const currentCart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const existingItem = currentCart.find((item: any) => item.id === product.id);
+    const existingItem = currentCart.find((item: any) => item.id === product.id && item.size === size);
     if (existingItem) {
       existingItem.quantity += 1;
     } else {
-      currentCart.push({ ...product, quantity: 1 });
+      currentCart.push({ ...product, size, quantity: 1 });
     }
     localStorage.setItem('cart', JSON.stringify(currentCart));
-    alert(`${product.name} has been added to your cart!`);
+    alert(`${product.name}${size ? ` (Size: ${size})` : ''} has been added to your cart!`);
   };
 
   const filteredProducts = mockProducts.filter((p) =>
@@ -48,6 +81,7 @@ export default function StorePage() {
       id: `pur${Date.now()}`,
       productId: selectedProduct.id,
       productName: selectedProduct.name,
+      size: selectedProduct.selectedSize,
       price,
       status: 'Ordered',
       patientEmail: currentUser.email || 'Unknown',
@@ -130,6 +164,18 @@ export default function StorePage() {
             {/* Image area */}
             <div className="relative h-48 w-full bg-white dark:bg-slate-800 flex items-center justify-center p-2">
               <img src={product.image} alt={product.name} className="h-full w-full object-contain rounded-xl" />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleWishlist(product.id);
+                }}
+                className={`absolute top-2 right-2 p-2 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-sm transition-colors ${
+                  wishlist.includes(product.id) ? 'text-red-500' : 'text-slate-400 hover:text-red-500'
+                }`}
+                title={wishlist.includes(product.id) ? "Remove from wishlist" : "Add to wishlist"}
+              >
+                {wishlist.includes(product.id) ? '❤️' : '🤍'}
+              </button>
             </div>
 
             {/* Content */}
@@ -147,6 +193,28 @@ export default function StorePage() {
                   </span>
                 </div>
               </div>
+
+              {/* Sizes */}
+              {product.sizes && product.sizes.length > 0 && (
+                <div className="mb-4">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-2">Size</span>
+                  <div className="flex flex-wrap gap-2">
+                    {product.sizes.map(size => (
+                      <button
+                        key={size}
+                        onClick={() => handleSizeSelect(product.id, size)}
+                        className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                          (selectedSizes[product.id] || product.sizes![0]) === size
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:border-primary'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Buttons */}
               <div className="flex gap-2 mt-auto">
@@ -208,6 +276,9 @@ export default function StorePage() {
                 <img src={selectedProduct.image} alt={selectedProduct.name} className="h-full w-full object-contain" />
               </div>
               <h2 className="text-xl font-bold">{selectedProduct.name}</h2>
+              {selectedProduct.selectedSize && (
+                <p className="text-primary font-medium mt-1">Size: {selectedProduct.selectedSize}</p>
+              )}
               <p className="text-slate-400 text-sm mt-1">Confirm your purchase</p>
             </div>
 

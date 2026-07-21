@@ -49,6 +49,18 @@ export function Navbar() {
                 {link.name}
               </Link>
             ))}
+            {role && (
+              <Link
+                href="/my-orders"
+                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
+                  pathname === '/my-orders'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-foreground hover:text-primary hover:border-gray-300'
+                }`}
+              >
+                My Orders
+              </Link>
+            )}
           </div>
           <div className="flex items-center space-x-4">
             {role ? (
