@@ -4,6 +4,21 @@ export async function POST(request: Request) {
   try {
     const { message, number } = await request.json();
 
+    // --- MOCK SMS FOR DEVELOPMENT ---
+    console.log(`[MOCK SMS] Sending to ${number}: ${message}`);
+    
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return NextResponse.json({ 
+      return: true, 
+      request_id: "mock_id_" + Date.now(), 
+      message: ["SMS sent successfully (Mocked for Development)"] 
+    });
+    // --------------------------------
+
+    /* 
+    // UNCOMMENT THIS SECTION WHEN YOU RECHARGE FAST2SMS WALLET
     const response = await fetch("https://www.fast2sms.com/dev/bulkV2", {
       method: "POST",
       headers: {
@@ -27,6 +42,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(data);
+    */
   } catch (error) {
     console.error("SMS Error:", error);
     return NextResponse.json({ error: "Failed to send SMS" }, { status: 500 });
