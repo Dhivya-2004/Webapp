@@ -14,7 +14,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [specialization, setSpecialization] = useState('');
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
     if (existingUsers.some((u: any) => u.email === email)) {
@@ -38,6 +38,26 @@ export default function RegisterPage() {
     localStorage.setItem('registeredUsers', JSON.stringify(existingUsers));
     localStorage.setItem('userRole', role);
     localStorage.setItem('currentUser', JSON.stringify(newUser));
+
+    if (role === 'doctor') {
+      try {
+        await fetch('/api/send-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: newUser.name,
+            email: newUser.email,
+            userId: newUser.id,
+          }),
+        });
+        alert('Registration successful! Please check your email to complete your doctor profile (simulated link in console).');
+      } catch (error) {
+        console.error('Failed to send email:', error);
+      }
+    }
+
     router.push(`/dashboard/${role}`);
   };
 

@@ -72,7 +72,7 @@ export default function StorePage() {
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handlePurchase = async () => {
+  const handlePurchase = async (method: 'COD' | 'UPI') => {
     if (!selectedProduct) return;
     const price = selectedProduct.price;
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
@@ -84,6 +84,7 @@ export default function StorePage() {
       size: selectedProduct.selectedSize,
       price,
       status: 'Ordered',
+      paymentMethod: method,
       patientEmail: currentUser.email || 'Unknown',
       patientName: currentUser.name || currentUser.email || 'Unknown',
       purchasedAt: new Date().toISOString(),
@@ -95,7 +96,7 @@ export default function StorePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: `Order received for ${selectedProduct.name} at PhysioByHarish. Amount: Rs ${price}.`,
+          message: `Order received for ${selectedProduct.name} at PhysioByHarish. Amount: Rs ${price}. Payment: ${method}.`,
           number: '6385842977'
         })
       });
@@ -103,7 +104,16 @@ export default function StorePage() {
       console.error(e);
     }
 
-    alert(`Successfully purchased ${selectedProduct.name} for ₹${price}!\n\n📱 SMS sent to 6385842977: Order received for ${selectedProduct.name}.`);
+    if (method === 'UPI') {
+      const upiId = 'physiobyharish@upi';
+      const name = encodeURIComponent('PhysioByHarish');
+      const upiUrl = `upi://pay?pa=${upiId}&pn=${name}&am=${price}&cu=INR`;
+      window.location.href = upiUrl;
+      alert(`Redirecting to your UPI app for payment of ₹${price}...`);
+    } else {
+      alert(`Successfully purchased ${selectedProduct.name} for ₹${price} via Cash on Delivery!\n\n📱 SMS sent to 6385842977: Order received for ${selectedProduct.name}.`);
+    }
+
     setSelectedProduct(null);
   };
 
@@ -292,18 +302,24 @@ export default function StorePage() {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3">
               <button
-                onClick={() => setSelectedProduct(null)}
-                className="flex-1 py-3 rounded-xl border border-gray-300 dark:border-gray-700 font-semibold text-foreground hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                onClick={() => handlePurchase('COD')}
+                className="w-full py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20 flex items-center justify-center gap-2"
               >
-                Cancel
+                <span>💵</span> Cash on Delivery
               </button>
               <button
-                onClick={handlePurchase}
-                className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-accent transition-colors shadow-lg shadow-primary/20"
+                onClick={() => handlePurchase('UPI')}
+                className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
               >
-                Confirm Purchase
+                <span>📱</span> Pay with UPI
+              </button>
+              <button
+                onClick={() => setSelectedProduct(null)}
+                className="w-full py-3 rounded-xl border border-gray-300 dark:border-gray-700 font-semibold text-foreground hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors mt-2"
+              >
+                Cancel
               </button>
             </div>
           </div>

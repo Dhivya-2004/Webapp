@@ -19,6 +19,34 @@ export default function DoctorDashboard() {
     // Only show appointments for this doctor
     const myApts = allAppointments.filter((a: any) => a.doctorId === user.id);
     setAppointments(myApts);
+
+    // SUPABASE REALTIME SUBSCRIPTION
+    // Listen for new appointments created for this doctor
+    if (user.id) {
+      import('@/lib/supabase').then(({ supabase }) => {
+        const channel = supabase
+          .channel('realtime_appointments')
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'appointments',
+              filter: `doctor_id=eq.${user.id}`,
+            },
+            (payload) => {
+              console.log('Real-time appointment received!', payload);
+              // Add the new appointment to the UI instantly
+              setAppointments((prev) => [payload.new, ...prev]);
+            }
+          )
+          .subscribe();
+
+        return () => {
+          supabase.removeChannel(channel);
+        };
+      });
+    }
   }, []);
 
   const handleStatusChange = (id: string, newStatus: 'approved' | 'rejected') => {

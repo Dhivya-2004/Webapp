@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import NotificationBell from './NotificationBell';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -64,12 +65,15 @@ export function Navbar() {
           </div>
           <div className="flex items-center space-x-4">
             {role ? (
-              <button
-                onClick={handleLogout}
-                className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-              >
-                Logout ({role})
-              </button>
+              <>
+                <NotificationBell userId={JSON.parse(localStorage.getItem('currentUser') || '{}').id || 'unknown'} />
+                <button
+                  onClick={handleLogout}
+                  className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+                >
+                  Logout ({role})
+                </button>
+              </>
             ) : (
               <>
                 <Link
