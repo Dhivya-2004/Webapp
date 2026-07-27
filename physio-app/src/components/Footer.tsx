@@ -13,13 +13,10 @@ export function Footer() {
             <h4 className="font-bold text-foreground mb-4">Contact Us</h4>
             <ul className="space-y-2 text-slate-500 dark:text-slate-400">
               <li className="flex items-center">
-                <span className="mr-2">📞</span> +1 (800) PHYSIO-1
+                <span className="mr-2">📞</span> 7639677168
               </li>
               <li className="flex items-center">
                 <span className="mr-2">✉️</span> support@physiobyharish.com
-              </li>
-              <li className="flex items-center">
-                <span className="mr-2">📍</span> 123 Wellness Avenue, Health City, HC 40501
               </li>
             </ul>
           </div>
