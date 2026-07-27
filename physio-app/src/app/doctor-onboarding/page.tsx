@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function DoctorOnboardingPage() {
+function DoctorOnboardingForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const userId = searchParams.get('userId');
@@ -144,5 +144,13 @@ export default function DoctorOnboardingPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function DoctorOnboardingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <DoctorOnboardingForm />
+    </Suspense>
   );
 }

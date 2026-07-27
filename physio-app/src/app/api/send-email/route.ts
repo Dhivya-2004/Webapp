@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     };
 
     // We simulate sending the email if credentials are dummy
-    if (transporter.options.host === 'smtp.ethereal.email' && !process.env.SMTP_USER) {
+    if ((transporter.options as any).host === 'smtp.ethereal.email' && !process.env.SMTP_USER) {
       console.log('--- SIMULATED EMAIL SENT ---');
       console.log(`To: ${email}`);
       console.log(`Subject: ${mailOptions.subject}`);
