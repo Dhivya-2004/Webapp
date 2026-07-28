@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 export default function DoctorDashboard() {
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -8,56 +9,66 @@ export default function DoctorDashboard() {
   const [totalPatients, setTotalPatients] = useState(0);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    setCurrentUser(user);
+    let channel: any;
+    
+    async function fetchData() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-    const allUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    const patients = allUsers.filter((u: any) => u.role === 'patient');
-    setTotalPatients(patients.length);
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      setCurrentUser(profile);
 
-    const allAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
-    // Only show appointments for this doctor
-    const myApts = allAppointments.filter((a: any) => a.doctorId === user.id);
-    setAppointments(myApts);
+      const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'patient');
+      setTotalPatients(count || 0);
 
-    // SUPABASE REALTIME SUBSCRIPTION
-    // Listen for new appointments created for this doctor
-    if (user.id) {
-      import('@/lib/supabase').then(({ supabase }) => {
-        const channel = supabase
-          .channel('realtime_appointments')
-          .on(
-            'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'appointments',
-              filter: `doctor_id=eq.${user.id}`,
-            },
-            (payload) => {
-              console.log('Real-time appointment received!', payload);
-              // Add the new appointment to the UI instantly
-              setAppointments((prev) => [payload.new, ...prev]);
-            }
-          )
-          .subscribe();
+      const fetchAppointments = async () => {
+        const { data: apts } = await supabase.from('appointments').select(`
+          *,
+          patient:profiles!appointments_patient_id_fkey(name, email)
+        `).eq('doctor_id', session.user.id).order('created_at', { ascending: false });
+        
+        if (apts) {
+          setAppointments(apts.map(a => ({
+            ...a,
+            patientName: a.patient?.name || 'Unknown',
+            patientEmail: a.patient?.email || 'Unknown'
+          })));
+        }
+      };
 
-        return () => {
-          supabase.removeChannel(channel);
-        };
-      });
+      await fetchAppointments();
+
+      // SUPABASE REALTIME SUBSCRIPTION
+      channel = supabase
+        .channel('realtime_appointments')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'appointments',
+            filter: `doctor_id=eq.${session.user.id}`,
+          },
+          (payload) => {
+            console.log('Real-time appointment update!', payload);
+            fetchAppointments(); // Re-fetch to get joined profile data safely
+          }
+        )
+        .subscribe();
     }
+    
+    fetchData();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
-  const handleStatusChange = (id: string, newStatus: 'approved' | 'rejected') => {
-    // Update local state
-    const updatedApts = appointments.map(app => app.id === id ? { ...app, status: newStatus } : app);
-    setAppointments(updatedApts);
-    
-    // Update global localStorage
-    const allAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
-    const updatedGlobal = allAppointments.map((app: any) => app.id === id ? { ...app, status: newStatus } : app);
-    localStorage.setItem('appointments', JSON.stringify(updatedGlobal));
+  const handleStatusChange = async (id: string, newStatus: 'approved' | 'rejected') => {
+    const { error } = await supabase.from('appointments').update({ status: newStatus }).eq('id', id);
+    if (!error) {
+      setAppointments(prev => prev.map(app => app.id === id ? { ...app, status: newStatus } : app));
+    }
   };
 
   const pendingCount = appointments.filter(a => a.status === 'pending').length;

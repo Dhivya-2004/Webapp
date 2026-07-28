@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from 'next/link'; // Trigger hot reload
 
 export default function Home() {
   return (

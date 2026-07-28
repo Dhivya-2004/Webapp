@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 type RegisteredUser = {
   id: string;
@@ -43,46 +44,82 @@ export default function AdminDashboard() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   useEffect(() => {
-    const users: RegisteredUser[] = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    setRegisteredUsers(users);
-    const purs: Purchase[] = JSON.parse(localStorage.getItem('purchases') || '[]');
-    setPurchases(purs);
-    const apts: Appointment[] = JSON.parse(localStorage.getItem('appointments') || '[]');
-    setAppointments(apts);
+    async function fetchData() {
+      const { data: users } = await supabase.from('profiles').select('*');
+      if (users) setRegisteredUsers(users.map(u => ({ ...u, registeredAt: u.created_at })));
+
+      const { data: purs } = await supabase.from('purchases').select(`
+        *,
+        user:profiles!purchases_user_id_fkey(name, email)
+      `).order('created_at', { ascending: false });
+      if (purs) {
+        setPurchases(purs.map(p => ({
+          ...p,
+          productName: p.product_name,
+          purchasedAt: p.created_at,
+          patientName: p.user?.name || 'Unknown',
+          patientEmail: p.user?.email || 'Unknown'
+        })));
+      }
+
+      const { data: apts } = await supabase.from('appointments').select(`
+        *,
+        patient:profiles!appointments_patient_id_fkey(name, email),
+        doctor:profiles!appointments_doctor_id_fkey(name, specialization)
+      `).order('created_at', { ascending: false });
+      if (apts) {
+        setAppointments(apts.map(a => ({
+          ...a,
+          bookedAt: a.created_at,
+          patientName: a.patient?.name || 'Unknown',
+          patientEmail: a.patient?.email || 'Unknown',
+          doctorName: a.doctor?.name || 'Unknown',
+          doctorSpecialization: a.doctor?.specialization || 'Unknown'
+        })));
+      }
+    }
+    fetchData();
   }, []);
 
   const doctors = registeredUsers.filter((u) => u.role === 'doctor');
   const patients = registeredUsers.filter((u) => u.role === 'patient');
   const totalRevenue = purchases.reduce((sum, p) => sum + p.price, 0);
 
-  const handleRemoveUser = (id: string) => {
-    const updated = registeredUsers.filter((u) => u.id !== id);
-    setRegisteredUsers(updated);
-    localStorage.setItem('registeredUsers', JSON.stringify(updated));
+  const handleRemoveUser = async (id: string) => {
+    const { error } = await supabase.from('profiles').delete().eq('id', id);
+    if (!error) {
+      setRegisteredUsers(prev => prev.filter(u => u.id !== id));
+    } else {
+      alert('Failed to remove user: ' + error.message);
+    }
   };
 
-  const handleRemovePurchase = (id: string) => {
-    const updated = purchases.filter((p) => p.id !== id);
-    setPurchases(updated);
-    localStorage.setItem('purchases', JSON.stringify(updated));
+  const handleRemovePurchase = async (id: string) => {
+    const { error } = await supabase.from('purchases').delete().eq('id', id);
+    if (!error) {
+      setPurchases(prev => prev.filter(p => p.id !== id));
+    }
   };
 
-  const handlePurchaseStatus = (id: string, status: string) => {
-    const updated = purchases.map((p) => p.id === id ? { ...p, status } : p);
-    setPurchases(updated);
-    localStorage.setItem('purchases', JSON.stringify(updated));
+  const handlePurchaseStatus = async (id: string, status: string) => {
+    const { error } = await supabase.from('purchases').update({ status }).eq('id', id);
+    if (!error) {
+      setPurchases(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+    }
   };
 
-  const handleRemoveAppointment = (id: string) => {
-    const updated = appointments.filter((a) => a.id !== id);
-    setAppointments(updated);
-    localStorage.setItem('appointments', JSON.stringify(updated));
+  const handleRemoveAppointment = async (id: string) => {
+    const { error } = await supabase.from('appointments').delete().eq('id', id);
+    if (!error) {
+      setAppointments(prev => prev.filter(a => a.id !== id));
+    }
   };
 
-  const handleAppointmentStatus = (id: string, status: 'approved' | 'rejected') => {
-    const updated = appointments.map((a) => a.id === id ? { ...a, status } : a);
-    setAppointments(updated);
-    localStorage.setItem('appointments', JSON.stringify(updated));
+  const handleAppointmentStatus = async (id: string, status: 'approved' | 'rejected') => {
+    const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
+    if (!error) {
+      setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
+    }
   };
 
   const pendingAppointments = appointments.filter(a => a.status === 'pending').length;

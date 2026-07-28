@@ -4,18 +4,48 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import NotificationBell from './NotificationBell';
+import { supabase } from '@/lib/supabase';
 
 export function Navbar() {
   const pathname = usePathname();
   const [role, setRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    setRole(localStorage.getItem('userRole'));
+    async function fetchSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setUserId(session.user.id);
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+        setRole(profile?.role || null);
+      } else {
+        setRole(null);
+        setUserId(null);
+      }
+    }
+    
+    fetchSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        setRole(null);
+        setUserId(null);
+      } else {
+        fetchSession();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [pathname]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem('userRole');
+    localStorage.removeItem('currentUser');
     setRole(null);
+    setUserId(null);
     window.location.href = '/login';
   };
   
@@ -66,7 +96,7 @@ export function Navbar() {
           <div className="flex items-center space-x-4">
             {role ? (
               <>
-                <NotificationBell userId={JSON.parse(localStorage.getItem('currentUser') || '{}').id || 'unknown'} />
+                {userId && <NotificationBell userId={userId} />}
                 <button
                   onClick={handleLogout}
                   className="text-sm font-medium text-foreground hover:text-primary transition-colors"

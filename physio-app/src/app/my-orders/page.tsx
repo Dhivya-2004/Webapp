@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { mockProducts } from '@/data/mock';
+import { supabase } from '@/lib/supabase';
 
 interface Purchase {
   id: string;
@@ -26,41 +27,53 @@ export default function MyOrdersPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const role = localStorage.getItem('userRole');
-    if (!role) {
-      router.push('/login');
-      return;
+    async function fetchData() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+      
+      setIsLoggedIn(true);
+
+      const { data: purchases } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+        
+      if (purchases) {
+        setOrders(purchases.map(p => ({
+          ...p,
+          productId: p.product_id,
+          productName: p.product_name,
+          purchasedAt: p.created_at,
+          patientEmail: '',
+          patientName: ''
+        })));
+      }
+
+      // Load wishlist
+      const storedWishlist = JSON.parse(localStorage.getItem(`wishlist_${session.user.id}`) || '[]');
+      const items = mockProducts.filter(p => storedWishlist.includes(p.id));
+      setWishlistItems(items);
+
+      // Load cart
+      const storedCart = JSON.parse(localStorage.getItem('cart') || '[]');
+      setCartItems(storedCart);
+
+      setIsLoading(false);
     }
     
-    setIsLoggedIn(true);
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const allPurchases: Purchase[] = JSON.parse(localStorage.getItem('purchases') || '[]');
-    
-    // Filter by user email
-    const userOrders = allPurchases.filter(p => p.patientEmail === currentUser.email);
-    // Sort by date descending
-    userOrders.sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime());
-    
-    setOrders(userOrders);
-
-    // Load wishlist
-    const storedWishlist = JSON.parse(localStorage.getItem(`wishlist_${currentUser.email}`) || '[]');
-    const items = mockProducts.filter(p => storedWishlist.includes(p.id));
-    setWishlistItems(items);
-
-    // Load cart
-    const storedCart = JSON.parse(localStorage.getItem('cart') || '[]');
-    setCartItems(storedCart);
-
-    setIsLoading(false);
+    fetchData();
   }, [router]);
 
-  const removeFromWishlist = (productId: string) => {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    if (!currentUser.email) return;
-    const storedWishlist = JSON.parse(localStorage.getItem(`wishlist_${currentUser.email}`) || '[]');
+  const removeFromWishlist = async (productId: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const storedWishlist = JSON.parse(localStorage.getItem(`wishlist_${session.user.id}`) || '[]');
     const newWishlist = storedWishlist.filter((id: string) => id !== productId);
-    localStorage.setItem(`wishlist_${currentUser.email}`, JSON.stringify(newWishlist));
+    localStorage.setItem(`wishlist_${session.user.id}`, JSON.stringify(newWishlist));
     setWishlistItems(prev => prev.filter(p => p.id !== productId));
   };
 

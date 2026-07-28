@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 
 export default function DoctorLoginPage() {
   const router = useRouter();
@@ -10,18 +11,34 @@ export default function DoctorLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    const user = existingUsers.find((u: any) => u.email === email && u.password === password && u.role === 'doctor');
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    if (!user) {
-      setError('Invalid credentials or account not registered. Please register first.');
+    if (authError || !authData.user) {
+      setError('Invalid credentials.');
       return;
     }
 
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (profileError || profile?.role !== 'doctor') {
+      await supabase.auth.signOut();
+      setError('Account is not registered as a Doctor.');
+      return;
+    }
+
+    // Keep localStorage for backwards compatibility while migrating other components
     localStorage.setItem('userRole', 'doctor');
+    localStorage.setItem('currentUser', JSON.stringify(profile));
     router.push(`/dashboard/doctor`);
   };
 

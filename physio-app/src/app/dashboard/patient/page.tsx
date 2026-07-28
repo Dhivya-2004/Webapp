@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { mockUsers } from '@/data/mock';
+import { supabase } from '@/lib/supabase';
 
 export default function PatientDashboard() {
   const [selectedDoctor, setSelectedDoctor] = useState('');
@@ -12,64 +12,86 @@ export default function PatientDashboard() {
   const [myAppointments, setMyAppointments] = useState<any[]>([]);
   const [myPurchases, setMyPurchases] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
-
-  const doctors = [
-    ...mockUsers.filter(u => u.role === 'doctor'),
-    ...JSON.parse(typeof window !== 'undefined' ? localStorage.getItem('registeredUsers') || '[]' : '[]').filter((u: any) => u.role === 'doctor'),
-  ];
+  const [doctors, setDoctors] = useState<any[]>([]);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    setCurrentUser(user);
-    const allAppointments: any[] = JSON.parse(localStorage.getItem('appointments') || '[]');
-    setMyAppointments(allAppointments.filter((a: any) => a.patientEmail === user.email));
-    const allPurchases: any[] = JSON.parse(localStorage.getItem('purchases') || '[]');
-    setMyPurchases(allPurchases.filter((p: any) => p.patientEmail === user.email));
+    async function fetchData() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      setCurrentUser(profile);
+
+      const { data: docs } = await supabase.from('profiles').select('*').eq('role', 'doctor');
+      if (docs) setDoctors(docs);
+
+      const { data: apts } = await supabase.from('appointments').select(`
+        *,
+        doctor:profiles!appointments_doctor_id_fkey(name, specialization)
+      `).eq('patient_id', session.user.id).order('created_at', { ascending: false });
+      
+      if (apts) {
+        setMyAppointments(apts.map(a => ({
+          ...a,
+          doctorName: a.doctor?.name || 'Unknown',
+          doctorSpecialization: a.doctor?.specialization || 'General'
+        })));
+      }
+
+      const { data: purch } = await supabase.from('purchases').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false });
+      if (purch) setMyPurchases(purch.map(p => ({ ...p, purchasedAt: p.created_at })));
+    }
+    
+    fetchData();
   }, []);
 
-  const handlePurchaseStatus = (id: string, newStatus: string) => {
-    const allPurchases = JSON.parse(localStorage.getItem('purchases') || '[]');
-    const updated = allPurchases.map((p: any) => p.id === id ? { ...p, status: newStatus } : p);
-    localStorage.setItem('purchases', JSON.stringify(updated));
-    setMyPurchases(updated.filter((p: any) => p.patientEmail === currentUser?.email));
+  const handlePurchaseStatus = async (id: string, newStatus: string) => {
+    const { error } = await supabase.from('purchases').update({ status: newStatus }).eq('id', id);
+    if (!error) {
+      setMyPurchases(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p));
+    }
   };
 
   const handleBook = async (e: React.FormEvent) => {
     e.preventDefault();
-    const doctor = doctors.find(d => d.id === selectedDoctor);
-    const allAppointments: any[] = JSON.parse(localStorage.getItem('appointments') || '[]');
-    const patientName = currentUser?.name || currentUser?.email || 'Patient';
+    if (!currentUser) return;
+    
     const newAppointment = {
-      id: `apt${Date.now()}`,
-      patientName,
-      patientEmail: currentUser?.email || '',
-      doctorId: selectedDoctor,
-      doctorName: doctor?.name || 'Doctor',
-      doctorSpecialization: doctor?.specialization || 'Physiotherapy',
+      patient_id: currentUser.id,
+      doctor_id: selectedDoctor,
       date,
       time,
       reason: reason || 'General consultation',
       status: 'pending',
-      bookedAt: new Date().toISOString(),
     };
-    allAppointments.push(newAppointment);
-    localStorage.setItem('appointments', JSON.stringify(allAppointments));
-    setMyAppointments(prev => [...prev, newAppointment]);
     
-    // Open WhatsApp with pre-filled appointment details
-    const address = currentUser?.address || 'Not provided';
-    const message = `*New Appointment Request*\n\n*Patient:* ${patientName}\n*Address:* ${address}\n*Date:* ${date}\n*Time:* ${time}\n*Details:* ${reason || 'General consultation'}`;
-    const whatsappUrl = `https://wa.me/916385842977?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+    const { data, error } = await supabase.from('appointments').insert([newAppointment]).select(`
+      *,
+      doctor:profiles!appointments_doctor_id_fkey(name, specialization)
+    `).single();
 
-    setBookingSuccess(true);
-    setTimeout(() => {
-      setBookingSuccess(false);
-      setSelectedDoctor('');
-      setDate('');
-      setTime('');
-      setReason('');
-    }, 3000);
+    if (!error && data) {
+      setMyAppointments(prev => [{
+        ...data,
+        doctorName: data.doctor?.name || 'Unknown',
+        doctorSpecialization: data.doctor?.specialization || 'General'
+      }, ...prev]);
+      
+      const patientName = currentUser.name || 'Patient';
+      const address = currentUser.address || 'Not provided';
+      const message = `*New Appointment Request*\n\n*Patient:* ${patientName}\n*Address:* ${address}\n*Date:* ${date}\n*Time:* ${time}\n*Details:* ${reason || 'General consultation'}`;
+      const whatsappUrl = `https://wa.me/916385842977?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+
+      setBookingSuccess(true);
+      setTimeout(() => {
+        setBookingSuccess(false);
+        setSelectedDoctor('');
+        setDate('');
+        setTime('');
+        setReason('');
+      }, 3000);
+    }
   };
 
   return (
@@ -77,10 +99,12 @@ export default function PatientDashboard() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-extrabold text-foreground">Patient Dashboard</h1>
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold">
-            JD
+          <div className="h-10 w-10 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold uppercase">
+            {currentUser ? (currentUser.name || currentUser.email || 'P').substring(0, 2) : '..'}
           </div>
-          <span className="font-medium">John Doe</span>
+          <span className="font-medium">
+            {currentUser ? (currentUser.name || currentUser.email || 'Patient') : 'Loading...'}
+          </span>
         </div>
       </div>
 

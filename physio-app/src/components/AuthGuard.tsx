@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -9,33 +10,57 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const role = localStorage.getItem('userRole');
-    if (!role) {
+    let mounted = true;
+
+    async function checkAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        if (pathname?.startsWith('/dashboard/')) {
+          const portal = pathname.split('/')[2];
+          if (portal) {
+            if (mounted) router.push(`/login/${portal}`);
+            return;
+          }
+        }
+        if (mounted) router.push('/login');
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+        
+      const role = profile?.role;
+      
+      if (!role) {
+        await supabase.auth.signOut();
+        if (mounted) router.push('/login');
+        return;
+      }
+
       if (pathname?.startsWith('/dashboard/')) {
         const portal = pathname.split('/')[2];
-        if (portal) {
-          router.push(`/login/${portal}`);
+        if (portal && portal !== role) {
+          if (mounted) router.push(`/dashboard/${role}`);
           return;
         }
       }
-      router.push('/login');
-      return;
+
+      if (mounted) setIsAuthenticated(true);
     }
 
-    // Enforce role-based access to dashboard portals
-    if (pathname?.startsWith('/dashboard/')) {
-      const portal = pathname.split('/')[2]; // e.g. "admin", "patient", "doctor"
-      if (portal && portal !== role) {
-        router.push(`/dashboard/${role}`);
-        return;
-      }
-    }
-
-    setIsAuthenticated(true);
+    checkAuth();
+    
+    return () => {
+      mounted = false;
+    };
   }, [router, pathname]);
 
   if (!isAuthenticated) {
-    return null; // or a loading spinner
+    return <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">Loading...</div>;
   }
 
   return <>{children}</>;

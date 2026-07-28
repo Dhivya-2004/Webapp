@@ -3,10 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { mockProducts } from '@/data/mock';
+import { supabase } from '@/lib/supabase';
 
 export default function StorePage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<(typeof mockProducts[0] & { selectedSize?: string }) | null>(null);
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
@@ -17,31 +20,38 @@ export default function StorePage() {
   };
 
   useEffect(() => {
-    const role = localStorage.getItem('userRole');
-    setIsLoggedIn(!!role);
-    if (role) {
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      if (currentUser.email) {
-        const storedWishlist = JSON.parse(localStorage.getItem(`wishlist_${currentUser.email}`) || '[]');
+    async function fetchSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsLoggedIn(true);
+        setCurrentUser(session.user);
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+        if (profile) setUserRole(profile.role);
+
+        // Keep wishlist in localStorage but keyed by Supabase user ID
+        const storedWishlist = JSON.parse(localStorage.getItem(`wishlist_${session.user.id}`) || '[]');
         setWishlist(storedWishlist);
+      } else {
+        setIsLoggedIn(false);
+        setUserRole(null);
+        setCurrentUser(null);
       }
     }
+    fetchSession();
   }, []);
 
   const toggleWishlist = (productId: string) => {
-    if (!isLoggedIn) {
+    if (!isLoggedIn || !currentUser) {
       router.push('/login');
       return;
     }
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    if (!currentUser.email) return;
 
     setWishlist(prev => {
       const newWishlist = prev.includes(productId) 
         ? prev.filter(id => id !== productId)
         : [...prev, productId];
       
-      localStorage.setItem(`wishlist_${currentUser.email}`, JSON.stringify(newWishlist));
+      localStorage.setItem(`wishlist_${currentUser.id}`, JSON.stringify(newWishlist));
       return newWishlist;
     });
   };
@@ -73,23 +83,26 @@ export default function StorePage() {
   );
 
   const handlePurchase = async (method: 'COD' | 'UPI') => {
-    if (!selectedProduct) return;
+    if (!selectedProduct || !currentUser) return;
     const price = selectedProduct.price;
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const purchases = JSON.parse(localStorage.getItem('purchases') || '[]');
-    purchases.push({
-      id: `pur${Date.now()}`,
-      productId: selectedProduct.id,
-      productName: selectedProduct.name,
-      size: selectedProduct.selectedSize,
+    
+    const newPurchase = {
+      user_id: currentUser.id,
+      product_id: selectedProduct.id,
+      product_name: selectedProduct.name,
+      size: selectedProduct.selectedSize || null,
       price,
+      payment_method: method,
       status: 'Ordered',
-      paymentMethod: method,
-      patientEmail: currentUser.email || 'Unknown',
-      patientName: currentUser.name || currentUser.email || 'Unknown',
-      purchasedAt: new Date().toISOString(),
-    });
-    localStorage.setItem('purchases', JSON.stringify(purchases));
+    };
+
+    const { error } = await supabase.from('purchases').insert([newPurchase]);
+    
+    if (error) {
+      console.error(error);
+      alert('Failed to complete purchase. Please try again.');
+      return;
+    }
     
     try {
       await fetch('/api/sms', {
@@ -147,14 +160,23 @@ export default function StorePage() {
             Browse our catalog of premium physiotherapy equipment.
           </p>
         </div>
-        <input
-          type="text"
-          placeholder="Search products..."
-          className="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 text-foreground focus:outline-none focus:ring-2 focus:ring-primary w-full md:w-72"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-
+        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+          <input
+            type="text"
+            placeholder="Search products..."
+            className="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 text-foreground focus:outline-none focus:ring-2 focus:ring-primary w-full md:w-72"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {(userRole === 'doctor' || userRole === 'admin') && (
+            <button
+              onClick={() => router.push('/store/purchase-equipment')}
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-full font-semibold whitespace-nowrap hover:bg-accent transition-colors shadow-md"
+            >
+              Purchase Equipment
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Legend */}

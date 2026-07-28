@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,28 +17,48 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    if (existingUsers.some((u: any) => u.email === email)) {
-      alert('Email already registered! Please login.');
+    
+    // 1. Sign up with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (authError) {
+      alert(authError.message);
       return;
     }
-    const newUser = {
-      id: `u${Date.now()}`,
-      firstName,
-      lastName,
-      name: `${firstName} ${lastName}`.trim(),
-      email,
-      phone,
-      address,
-      password,
-      role,
-      specialization: role === 'doctor' ? specialization : undefined,
-      registeredAt: new Date().toISOString(),
-    };
-    existingUsers.push(newUser);
-    localStorage.setItem('registeredUsers', JSON.stringify(existingUsers));
+
+    if (!authData.user) {
+      alert('Registration failed. Please try again.');
+      return;
+    }
+
+    const newName = `${firstName} ${lastName}`.trim();
+
+    // 2. Insert into profiles table
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert([
+        {
+          id: authData.user.id,
+          email,
+          role,
+          name: newName,
+          address,
+          specialization: role === 'doctor' ? specialization : null,
+        }
+      ]);
+
+    if (profileError) {
+      console.error(profileError);
+      alert('Failed to create user profile: ' + profileError.message);
+      return;
+    }
+    
+    // Keep localStorage for partial backwards compatibility while we migrate the rest of the app
     localStorage.setItem('userRole', role);
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
+    localStorage.setItem('currentUser', JSON.stringify({ id: authData.user.id, email, name: newName, role, specialization, address }));
 
     if (role === 'doctor') {
       try {
@@ -47,9 +68,9 @@ export default function RegisterPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            name: newUser.name,
-            email: newUser.email,
-            userId: newUser.id,
+            name: newName,
+            email: email,
+            userId: authData.user.id,
           }),
         });
         alert('Registration successful! Please check your email to complete your doctor profile (simulated link in console).');
