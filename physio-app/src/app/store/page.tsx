@@ -21,15 +21,6 @@ export default function StorePage() {
 
   useEffect(() => {
     async function fetchSession() {
-      if (typeof window !== 'undefined' && sessionStorage.getItem('adminAuth') === 'true') {
-        setIsLoggedIn(true);
-        setUserRole('admin');
-        setCurrentUser(JSON.parse(localStorage.getItem('currentUser') || '{}'));
-        const storedWishlist = JSON.parse(localStorage.getItem(`wishlist_admin-hardcoded-id`) || '[]');
-        setWishlist(storedWishlist);
-        return;
-      }
-
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setIsLoggedIn(true);
@@ -339,21 +330,23 @@ export default function StorePage() {
               {/* Buttons */}
               <div className="flex gap-2 mt-auto">
                 {isLoggedIn && (
-                  <>
-                    <button
-                      onClick={() => handleAddToCart(product)}
-                      className="flex-1 py-2 rounded-xl font-semibold transition-colors text-sm shadow-sm bg-slate-100 text-slate-800 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
-                    >
-                      Add to Cart
-                    </button>
-                    <button
-                      onClick={() => handlePurchaseClick(product)}
-                      className="flex-1 py-2 rounded-xl font-semibold transition-colors text-sm shadow-sm bg-primary text-primary-foreground hover:bg-accent"
-                    >
-                      Purchase
-                    </button>
-                  </>
+                  <button
+                    onClick={() => handleAddToCart(product)}
+                    className="flex-1 py-2 rounded-xl font-semibold transition-colors text-sm shadow-sm bg-slate-100 text-slate-800 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
+                  >
+                    Add to Cart
+                  </button>
                 )}
+                <button
+                  onClick={() => handlePurchaseClick(product)}
+                  className={`flex-1 py-2 rounded-xl font-semibold transition-colors text-sm shadow-sm ${
+                    isLoggedIn
+                      ? 'bg-primary text-primary-foreground hover:bg-accent'
+                      : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600'
+                  }`}
+                >
+                  {isLoggedIn ? 'Purchase' : '🔒 Login'}
+                </button>
               </div>
             </div>
           </div>

@@ -13,6 +13,15 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     let mounted = true;
 
     async function checkAuth() {
+      // Allow hardcoded admin login to bypass Supabase check
+      if (pathname === '/dashboard/admin') {
+        const isAdminAuth = typeof window !== 'undefined' && sessionStorage.getItem('adminAuth') === 'true';
+        if (isAdminAuth) {
+          if (mounted) setIsAuthenticated(true);
+          return;
+        }
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
