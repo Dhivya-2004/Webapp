@@ -154,8 +154,44 @@ export default function StorePage() {
         return;
       }
 
+      const rzpKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_dummykey12345';
+
+      if (rzpKey === 'rzp_test_dummykey12345') {
+        // Mock successful payment frontend flow
+        alert('This is a simulated Razorpay checkout since dummy keys are used. Payment successful!');
+        
+        const verifyRes = await fetch('/api/verify-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            razorpay_order_id: orderData.id,
+            razorpay_payment_id: 'pay_dummy_' + Math.random().toString(36).substring(7),
+            razorpay_signature: 'dummy_signature',
+            purchase_id: purchase_id,
+            is_mock: true // Added flag for backend to bypass signature validation
+          }),
+        });
+        
+        const verifyData = await verifyRes.json();
+        if (verifyData.success) {
+          alert(`Payment of ₹${price} successful! Purchase completed.`);
+          try {
+            await fetch('/api/sms', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                message: `Payment Received for ${selectedProduct.name}. Amount: Rs ${price}. Payment: ${method}.`,
+                number: '6385842977'
+              })
+            });
+          } catch(e) {}
+        }
+        setSelectedProduct(null);
+        return;
+      }
+
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_dummykey12345', 
+        key: rzpKey, 
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'PhysioByHarish',
