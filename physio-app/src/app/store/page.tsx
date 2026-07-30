@@ -21,6 +21,17 @@ export default function StorePage() {
 
   useEffect(() => {
     async function fetchSession() {
+      if (typeof window !== 'undefined' && sessionStorage.getItem('adminAuth') === 'true') {
+        setIsLoggedIn(true);
+        setUserRole('admin');
+        const adminProfile = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        setCurrentUser(adminProfile);
+        
+        const storedWishlist = JSON.parse(localStorage.getItem(`wishlist_${adminProfile.id || 'admin'}`) || '[]');
+        setWishlist(storedWishlist);
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setIsLoggedIn(true);

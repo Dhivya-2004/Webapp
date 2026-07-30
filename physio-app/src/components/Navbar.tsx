@@ -13,6 +13,13 @@ export function Navbar() {
 
   useEffect(() => {
     async function fetchSession() {
+      if (typeof window !== 'undefined' && sessionStorage.getItem('adminAuth') === 'true') {
+        setRole('admin');
+        const adminProfile = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        setUserId(adminProfile.id || 'admin-hardcoded-id');
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setUserId(session.user.id);
@@ -44,6 +51,9 @@ export function Navbar() {
     await supabase.auth.signOut();
     localStorage.removeItem('userRole');
     localStorage.removeItem('currentUser');
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('adminAuth');
+    }
     setRole(null);
     setUserId(null);
     window.location.href = '/login';
