@@ -35,8 +35,15 @@ export function Navbar() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        setRole(null);
-        setUserId(null);
+        if (typeof window !== 'undefined' && sessionStorage.getItem('adminAuth') === 'true') {
+          // Keep the admin session active
+          setRole('admin');
+          const adminProfile = JSON.parse(localStorage.getItem('currentUser') || '{}');
+          setUserId(adminProfile.id || 'admin-hardcoded-id');
+        } else {
+          setRole(null);
+          setUserId(null);
+        }
       } else {
         fetchSession();
       }
