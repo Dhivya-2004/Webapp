@@ -13,6 +13,12 @@ export function Navbar() {
 
   useEffect(() => {
     async function fetchSession() {
+      if (typeof window !== 'undefined' && sessionStorage.getItem('adminAuth') === 'true') {
+        setRole('admin');
+        setUserId('admin-hardcoded-id');
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setUserId(session.user.id);
@@ -44,6 +50,7 @@ export function Navbar() {
     await supabase.auth.signOut();
     localStorage.removeItem('userRole');
     localStorage.removeItem('currentUser');
+    sessionStorage.removeItem('adminAuth');
     setRole(null);
     setUserId(null);
     window.location.href = '/login';
@@ -52,10 +59,15 @@ export function Navbar() {
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Store', path: '/store' },
-    { name: 'Patient Portal', path: '/dashboard/patient' },
-    { name: 'Doctor Portal', path: '/dashboard/doctor' },
-    { name: 'Admin', path: '/dashboard/admin' },
   ];
+
+  if (role === 'patient') {
+    navLinks.push({ name: 'Patient Portal', path: '/dashboard/patient' });
+  } else if (role === 'doctor') {
+    navLinks.push({ name: 'Doctor Portal', path: '/dashboard/doctor' });
+  } else if (role === 'admin') {
+    navLinks.push({ name: 'Admin', path: '/dashboard/admin' });
+  }
 
   return (
     <nav className="glass sticky top-0 z-50 w-full border-b">
