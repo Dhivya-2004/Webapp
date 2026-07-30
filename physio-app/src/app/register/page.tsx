@@ -25,7 +25,12 @@ export default function RegisterPage() {
     });
 
     if (authError) {
-      alert(authError.message);
+      console.error("Auth error:", authError);
+      let errorMsg = authError.message;
+      if (!errorMsg || errorMsg === '{}') {
+        errorMsg = 'This email is already registered or invalid. Please try another one or sign in.';
+      }
+      alert(errorMsg);
       return;
     }
 
