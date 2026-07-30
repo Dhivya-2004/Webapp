@@ -38,12 +38,24 @@ type Appointment = {
 type Tab = 'overview' | 'doctors' | 'patients' | 'purchases' | 'appointments';
 
 export default function AdminDashboard() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   useEffect(() => {
+    if (sessionStorage.getItem('adminAuth') === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
     async function fetchData() {
       const { data: users } = await supabase.from('profiles').select('*');
       if (users) setRegisteredUsers(users.map(u => ({ ...u, registeredAt: u.created_at })));
@@ -79,7 +91,18 @@ export default function AdminDashboard() {
       }
     }
     fetchData();
-  }, []);
+  }, [isAuthenticated]);
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email === 'divyamsk21@gmail.com' && password === 'Admin@123') {
+      setIsAuthenticated(true);
+      sessionStorage.setItem('adminAuth', 'true');
+      setLoginError('');
+    } else {
+      setLoginError('Invalid credentials');
+    }
+  };
 
   const doctors = registeredUsers.filter((u) => u.role === 'doctor');
   const patients = registeredUsers.filter((u) => u.role === 'patient');
@@ -131,6 +154,51 @@ export default function AdminDashboard() {
     { id: 'purchases', label: `Purchases (${purchases.length})`, emoji: '🛒' },
     { id: 'appointments', label: `Appointments (${appointments.length})`, emoji: '📅' },
   ];
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-[70vh]">
+        <div className="max-w-md w-full bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">
+              🛡️
+            </div>
+            <h1 className="text-2xl font-bold">Admin Login</h1>
+            <p className="text-slate-500 text-sm mt-2">Enter your credentials to access the admin dashboard.</p>
+          </div>
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold mb-1">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary"
+                required
+              />
+            </div>
+            {loginError && <p className="text-red-500 text-sm font-medium">{loginError}</p>}
+            <button
+              type="submit"
+              className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/25 mt-4"
+            >
+              Login to Dashboard
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

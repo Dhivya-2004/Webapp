@@ -82,6 +82,16 @@ export default function StorePage() {
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handlePurchase = async (method: 'COD' | 'UPI') => {
     if (!selectedProduct || !currentUser) return;
     const price = selectedProduct.price;
@@ -96,34 +106,103 @@ export default function StorePage() {
       status: 'Ordered',
     };
 
-    const { error } = await supabase.from('purchases').insert([newPurchase]);
+    const { data: insertedData, error } = await supabase.from('purchases').insert([newPurchase]).select();
     
     if (error) {
       console.error(error);
       alert('Failed to complete purchase. Please try again.');
       return;
     }
+
+    const purchase_id = insertedData?.[0]?.id;
     
-    try {
-      await fetch('/api/sms', {
+    if (method === 'UPI') {
+      const res = await loadRazorpayScript();
+      if (!res) {
+        alert('Razorpay SDK failed to load. Are you online?');
+        return;
+      }
+
+      // Create order by calling our backend
+      const orderResponse = await fetch('/api/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `Order received for ${selectedProduct.name} at PhysioByHarish. Amount: Rs ${price}. Payment: ${method}.`,
-          number: '6385842977'
-        })
+        body: JSON.stringify({ amount: price, receipt: `receipt_${purchase_id}` })
       });
-    } catch(e) {
-      console.error(e);
-    }
+      const orderData = await orderResponse.json();
 
-    if (method === 'UPI') {
-      const upiId = 'physiobyharish@upi';
-      const name = encodeURIComponent('PhysioByHarish');
-      const upiUrl = `upi://pay?pa=${upiId}&pn=${name}&am=${price}&cu=INR`;
-      window.location.href = upiUrl;
-      alert(`Redirecting to your UPI app for payment of ₹${price}...`);
+      if (!orderData || orderData.error) {
+        alert('Server error. Are you online?');
+        return;
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_dummykey12345', 
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'PhysioByHarish',
+        description: `Payment for ${selectedProduct.name}`,
+        order_id: orderData.id,
+        handler: async function (response: any) {
+          // Verify payment
+          const verifyRes = await fetch('/api/verify-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              purchase_id: purchase_id,
+            }),
+          });
+          
+          const verifyData = await verifyRes.json();
+          if (verifyData.success) {
+            alert(`Payment of ₹${price} successful! Purchase completed.`);
+            
+            // Send SMS notification
+            try {
+              await fetch('/api/sms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  message: `Payment Received for ${selectedProduct.name} at PhysioByHarish. Amount: Rs ${price}. Payment: ${method}.`,
+                  number: '6385842977'
+                })
+              });
+            } catch(e) {
+              console.error(e);
+            }
+          } else {
+            alert('Payment verification failed!');
+          }
+        },
+        prefill: {
+          name: currentUser.user_metadata?.full_name || 'Customer',
+          email: currentUser.email,
+        },
+        theme: {
+          color: '#2563eb' // Matches primary blue theme
+        }
+      };
+
+      const paymentObject = new (window as any).Razorpay(options);
+      paymentObject.open();
+
     } else {
+      // COD Logic
+      try {
+        await fetch('/api/sms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Order received for ${selectedProduct.name} at PhysioByHarish. Amount: Rs ${price}. Payment: COD.`,
+            number: '6385842977'
+          })
+        });
+      } catch(e) {
+        console.error(e);
+      }
       alert(`Successfully purchased ${selectedProduct.name} for ₹${price} via Cash on Delivery!\n\n📱 SMS sent to 6385842977: Order received for ${selectedProduct.name}.`);
     }
 
