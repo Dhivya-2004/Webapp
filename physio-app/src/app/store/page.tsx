@@ -105,6 +105,13 @@ export default function StorePage() {
 
   const handlePurchase = async (method: 'COD' | 'UPI') => {
     if (!selectedProduct || !currentUser) return;
+
+    if (userRole === 'admin') {
+      alert("Admin accounts are for management only and cannot make purchases. Please log in as a Patient or Doctor to test the purchase flow.");
+      setSelectedProduct(null);
+      return;
+    }
+
     const price = selectedProduct.price;
     
     const newPurchase = {
