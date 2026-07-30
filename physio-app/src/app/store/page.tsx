@@ -22,7 +22,18 @@ export default function StorePage() {
   useEffect(() => {
     async function fetchSession() {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+      
+      const isAdminAuth = typeof window !== 'undefined' && sessionStorage.getItem('adminAuth') === 'true';
+
+      if (isAdminAuth) {
+        setIsLoggedIn(true);
+        setUserRole('admin');
+        setCurrentUser({
+          id: '00000000-0000-0000-0000-000000000000', // Dummy UUID to prevent errors
+          email: 'divyamsk21@gmail.com',
+          user_metadata: { full_name: 'Admin User' }
+        });
+      } else if (session) {
         setIsLoggedIn(true);
         setCurrentUser(session.user);
         const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
