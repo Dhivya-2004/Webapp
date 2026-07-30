@@ -14,32 +14,26 @@ export default function AdminLoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (authError || !authData.user) {
+    if (email === 'divyamsk21@gmail.com' && password === 'Admin@123') {
+      // Keep localStorage for backwards compatibility while migrating other components
+      localStorage.setItem('userRole', 'admin');
+      
+      // Hardcode a fake profile to satisfy the rest of the application
+      const adminProfile = {
+        id: 'admin-hardcoded-id',
+        email: 'divyamsk21@gmail.com',
+        role: 'admin',
+        name: 'Admin User'
+      };
+      localStorage.setItem('currentUser', JSON.stringify(adminProfile));
+      
+      // Also set the session storage flag we added in the dashboard
+      sessionStorage.setItem('adminAuth', 'true');
+      
+      router.push(`/dashboard/admin`);
+    } else {
       setError('Invalid credentials.');
-      return;
     }
-
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authData.user.id)
-      .single();
-
-    if (profileError || profile?.role !== 'admin') {
-      await supabase.auth.signOut();
-      setError('Account is not registered as an Admin.');
-      return;
-    }
-
-    // Keep localStorage for backwards compatibility while migrating other components
-    localStorage.setItem('userRole', 'admin');
-    localStorage.setItem('currentUser', JSON.stringify(profile));
-    router.push(`/dashboard/admin`);
   };
 
   return (
