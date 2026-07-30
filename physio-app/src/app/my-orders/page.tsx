@@ -28,6 +28,40 @@ export default function MyOrdersPage() {
 
   useEffect(() => {
     async function fetchData() {
+      // Check for hardcoded admin first
+      if (typeof window !== 'undefined' && sessionStorage.getItem('adminAuth') === 'true') {
+        setIsLoggedIn(true);
+        const adminProfile = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const adminId = adminProfile.id || 'admin-hardcoded-id';
+
+        const { data: purchases } = await supabase
+          .from('purchases')
+          .select('*')
+          .eq('user_id', adminId)
+          .order('created_at', { ascending: false });
+
+        if (purchases) {
+          setOrders(purchases.map(p => ({
+            ...p,
+            productId: p.product_id,
+            productName: p.product_name,
+            purchasedAt: p.created_at,
+            patientEmail: '',
+            patientName: ''
+          })));
+        }
+
+        const storedWishlist = JSON.parse(localStorage.getItem(`wishlist_${adminId}`) || '[]');
+        const items = mockProducts.filter(p => storedWishlist.includes(p.id));
+        setWishlistItems(items);
+
+        const storedCart = JSON.parse(localStorage.getItem('cart') || '[]');
+        setCartItems(storedCart);
+
+        setIsLoading(false);
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push('/login');
@@ -69,6 +103,16 @@ export default function MyOrdersPage() {
   }, [router]);
 
   const removeFromWishlist = async (productId: string) => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('adminAuth') === 'true') {
+      const adminProfile = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const adminId = adminProfile.id || 'admin-hardcoded-id';
+      const storedWishlist = JSON.parse(localStorage.getItem(`wishlist_${adminId}`) || '[]');
+      const newWishlist = storedWishlist.filter((id: string) => id !== productId);
+      localStorage.setItem(`wishlist_${adminId}`, JSON.stringify(newWishlist));
+      setWishlistItems(prev => prev.filter(p => p.id !== productId));
+      return;
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     const storedWishlist = JSON.parse(localStorage.getItem(`wishlist_${session.user.id}`) || '[]');
