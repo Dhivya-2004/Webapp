@@ -13,6 +13,17 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     let mounted = true;
 
     async function checkAuth() {
+      // Special case for hardcoded Admin access
+      if (pathname === '/dashboard/admin') {
+        if (sessionStorage.getItem('adminAuth') === 'true') {
+          if (mounted) setIsAuthenticated(true);
+          return;
+        } else {
+          if (mounted) router.push('/login/admin');
+          return;
+        }
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
