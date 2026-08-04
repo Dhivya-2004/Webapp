@@ -39,8 +39,9 @@ export default function DoctorDashboard() {
       await fetchAppointments();
 
       // SUPABASE REALTIME SUBSCRIPTION
+      const channelId = `realtime_appointments_${session.user.id}_${Math.random()}`;
       channel = supabase
-        .channel('realtime_appointments')
+        .channel(channelId)
         .on(
           'postgres_changes',
           {

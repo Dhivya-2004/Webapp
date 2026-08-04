@@ -157,36 +157,50 @@ export default function StorePage() {
       const rzpKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_dummykey12345';
 
       if (rzpKey === 'rzp_test_dummykey12345') {
-        // Mock successful payment frontend flow
-        alert('This is a simulated Razorpay checkout since dummy keys are used. Payment successful!');
+        // Direct UPI intent for demonstration
+        const upiId = 'physiobyharish@ybl'; // Dummy UPI ID
+        const name = 'PhysioByHarish';
+        const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${price}&cu=INR&tn=${encodeURIComponent('Payment for ' + selectedProduct.name)}`;
         
-        const verifyRes = await fetch('/api/verify-payment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            razorpay_order_id: orderData.id,
-            razorpay_payment_id: 'pay_dummy_' + Math.random().toString(36).substring(7),
-            razorpay_signature: 'dummy_signature',
-            purchase_id: purchase_id,
-            is_mock: true // Added flag for backend to bypass signature validation
-          }),
-        });
-        
-        const verifyData = await verifyRes.json();
-        if (verifyData.success) {
-          alert(`Payment of ₹${price} successful! Purchase completed.`);
-          try {
-            await fetch('/api/sms', {
+        // Attempt to open UPI apps (GPay, PhonePe, Paytm, etc.)
+        window.location.href = upiUrl;
+
+        // Since generic UPI deep links on web don't provide a success callback back to the browser,
+        // we simulate the verification after they return to the app.
+        setTimeout(async () => {
+          const confirmed = window.confirm('Did you complete the payment successfully on your UPI app? (Simulated callback)');
+          if (confirmed) {
+            const verifyRes = await fetch('/api/verify-payment', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                message: `Payment Received for ${selectedProduct.name}. Amount: Rs ${price}. Payment: ${method}.`,
-                number: '6385842977'
-              })
+                razorpay_order_id: orderData.id,
+                razorpay_payment_id: 'pay_dummy_' + Math.random().toString(36).substring(7),
+                razorpay_signature: 'dummy_signature',
+                purchase_id: purchase_id,
+                is_mock: true
+              }),
             });
-          } catch(e) {}
-        }
-        setSelectedProduct(null);
+            
+            const verifyData = await verifyRes.json();
+            if (verifyData.success) {
+              alert(`Payment of ₹${price} successful! Purchase completed.`);
+              try {
+                await fetch('/api/sms', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    message: `Payment Received for ${selectedProduct.name}. Amount: Rs ${price}. Payment: ${method}.`,
+                    number: '6385842977'
+                  })
+                });
+              } catch(e) {}
+            }
+          } else {
+            alert('Payment cancelled or failed.');
+          }
+          setSelectedProduct(null);
+        }, 2000);
         return;
       }
 

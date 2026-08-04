@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       },
     });
 
-    const formUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/doctor-onboarding?userId=${userId}`;
+    const formUrl = process.env.GOOGLE_FORM_URL || 'https://docs.google.com/forms/d/e/your-form-id/viewform';
 
     const mailOptions = {
       from: '"PhysioByHarish" <noreply@physiobyharish.com>',
@@ -38,11 +38,11 @@ export async function POST(request: Request) {
             Thank you for registering with us. To complete your doctor profile and gain full access to the platform, we need a few more details about your educational background.
           </p>
           <p style="color: #475569; line-height: 1.6;">
-            Please click the button below to fill out your qualification details:
+            Please click the button below to fill out our Google Form with your qualification details:
           </p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${formUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-              Complete Registration Form
+            <a href="${formUrl}" target="_blank" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+              Fill Out Google Form
             </a>
           </div>
           <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-top: 20px;">

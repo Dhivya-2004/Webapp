@@ -10,8 +10,9 @@ export default function NotificationBell({ userId }: { userId: string }) {
   useEffect(() => {
     // 1. Fetch initial notifications (optional, if we had a real table)
     // 2. Subscribe to real-time changes
+    const channelId = `realtime_notifications_${userId}_${Math.random()}`;
     const channel = supabase
-      .channel('realtime_notifications')
+      .channel(channelId)
       .on(
         'postgres_changes',
         {
