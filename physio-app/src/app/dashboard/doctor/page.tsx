@@ -69,6 +69,15 @@ export default function DoctorDashboard() {
     const { error } = await supabase.from('appointments').update({ status: newStatus }).eq('id', id);
     if (!error) {
       setAppointments(prev => prev.map(app => app.id === id ? { ...app, status: newStatus } : app));
+      
+      // Send real-time notification to the patient
+      const appointment = appointments.find(a => a.id === id);
+      if (appointment) {
+        await supabase.from('notifications').insert([{
+          user_id: appointment.patient_id,
+          message: `Your appointment on ${appointment.date} at ${appointment.time} has been ${newStatus}.`
+        }]);
+      }
     }
   };
 

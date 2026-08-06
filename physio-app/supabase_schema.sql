@@ -66,3 +66,28 @@ alter table public.purchases enable row level security;
 create policy "Users can view their own purchases." on purchases for select using (auth.uid() = user_id or exists (select 1 from profiles where id = auth.uid() and role = 'admin'));
 create policy "Users can create purchases." on purchases for insert with check (auth.uid() = user_id);
 create policy "Admins can update purchases." on purchases for update using (exists (select 1 from profiles where id = auth.uid() and role = 'admin') or auth.uid() = user_id);
+
+-- 4. Notifications table
+create table public.notifications (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  message text not null,
+  is_read boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.notifications enable row level security;
+create policy "Users can view their own notifications." on notifications for select using (auth.uid() = user_id);
+create policy "System can insert notifications." on notifications for insert with check (true);
+create policy "Users can update their notifications." on notifications for update using (auth.uid() = user_id);
+
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'notifications') then
+    alter publication supabase_realtime add table notifications;
+  end if;
+end
+$$;
+
+-- Add status column to profiles table for admin approval flow
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS status text DEFAULT 'approved';

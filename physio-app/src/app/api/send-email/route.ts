@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const formUrl = process.env.GOOGLE_FORM_URL || 'https://docs.google.com/forms/d/e/your-form-id/viewform';
 
     const mailOptions = {
-      from: '"PhysioByHarish" <noreply@physiobyharish.com>',
+      from: '"PhysioByHarish" <divyamsk21@gmail.com>',
       to: email,
       subject: 'Complete Your Doctor Registration - PhysioByHarish',
       html: `

@@ -52,6 +52,7 @@ export default function RegisterPage() {
           name: newName,
           address,
           specialization: role === 'doctor' ? specialization : null,
+          status: role === 'doctor' ? 'pending' : 'approved',
         }
       ]);
 

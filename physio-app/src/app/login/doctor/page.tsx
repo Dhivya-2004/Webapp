@@ -36,6 +36,18 @@ export default function DoctorLoginPage() {
       return;
     }
 
+    if (profile?.status === 'pending') {
+      await supabase.auth.signOut();
+      setError('Your account is pending admin approval. Please wait until your details are verified.');
+      return;
+    }
+    
+    if (profile?.status === 'rejected') {
+      await supabase.auth.signOut();
+      setError('Your account application was rejected. Please contact support.');
+      return;
+    }
+
     // Keep localStorage for backwards compatibility while migrating other components
     localStorage.setItem('userRole', 'doctor');
     localStorage.setItem('currentUser', JSON.stringify(profile));

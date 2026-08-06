@@ -10,6 +10,7 @@ type RegisteredUser = {
   role: 'patient' | 'doctor';
   specialization?: string;
   registeredAt?: string;
+  status?: string;
 };
 
 type Purchase = {
@@ -35,7 +36,7 @@ type Appointment = {
   bookedAt: string;
 };
 
-type Tab = 'overview' | 'doctors' | 'patients' | 'purchases' | 'appointments';
+type Tab = 'overview' | 'doctors' | 'patients' | 'purchases' | 'appointments' | 'applications';
 
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -122,6 +123,15 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDoctorStatus = async (id: string, status: string) => {
+    const { error } = await supabase.from('profiles').update({ status }).eq('id', id);
+    if (!error) {
+      setRegisteredUsers(prev => prev.map(u => u.id === id ? { ...u, status } : u));
+    } else {
+      alert('Failed to update status: ' + error.message);
+    }
+  };
+
   const handleRemovePurchase = async (id: string) => {
     const { error } = await supabase.from('purchases').delete().eq('id', id);
     if (!error) {
@@ -158,6 +168,7 @@ export default function AdminDashboard() {
     { id: 'patients', label: `Patients (${patients.length})`, emoji: '🧑‍🦽' },
     { id: 'purchases', label: `Purchases (${purchases.length})`, emoji: '🛒' },
     { id: 'appointments', label: `Appointments (${appointments.length})`, emoji: '📅' },
+    { id: 'applications', label: `Doctor Applications`, emoji: '📋' },
   ];
 
   if (!isAuthenticated) {
@@ -333,6 +344,7 @@ export default function AdminDashboard() {
                       <th className="pb-3 font-semibold">Specialization</th>
                       <th className="pb-3 font-semibold">Email</th>
                       <th className="pb-3 font-semibold">Registered</th>
+                      <th className="pb-3 font-semibold">Status</th>
                       <th className="pb-3 font-semibold text-right">Action</th>
                     </tr>
                   </thead>
@@ -356,13 +368,34 @@ export default function AdminDashboard() {
                         <td className="py-3 text-slate-400 text-xs">
                           {doc.registeredAt ? new Date(doc.registeredAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                         </td>
+                        <td className="py-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            doc.status === 'approved' 
+                              ? 'bg-green-100 text-green-700' 
+                              : doc.status === 'rejected'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {doc.status ? doc.status.charAt(0).toUpperCase() + doc.status.slice(1) : 'Approved'}
+                          </span>
+                        </td>
                         <td className="py-3 text-right">
-                          <button
-                            onClick={() => handleRemoveUser(doc.id)}
-                            className="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-full transition-colors"
-                          >
-                            Remove
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {(doc.status === 'pending') && (
+                              <button
+                                onClick={() => handleDoctorStatus(doc.id, 'approved')}
+                                className="text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1.5 rounded-full hover:bg-green-100"
+                              >
+                                Approve
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleRemoveUser(doc.id)}
+                              className="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 dark:bg-red-900/20 px-2.5 py-1.5 rounded-full transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -632,6 +665,26 @@ export default function AdminDashboard() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+        )}
+        {/* Applications Tab */}
+        {activeTab === 'applications' && (
+          <div className="p-6 h-[600px] flex flex-col">
+            <h2 className="text-lg font-bold mb-4">Doctor Applications (Google Form Responses)</h2>
+            <p className="text-sm text-slate-500 mb-4">
+              To view the filled details here, publish your Google Sheet to the web (File {'>'} Share {'>'} Publish to web {'>'} Embed) and add the source URL to your .env.local file as <code>NEXT_PUBLIC_GOOGLE_SHEET_URL</code>.
+            </p>
+            {process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL ? (
+              <iframe 
+                src={process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL} 
+                className="w-full flex-grow border-0 rounded-xl bg-white shadow-inner"
+                title="Google Form Responses"
+              />
+            ) : (
+              <div className="flex-grow flex items-center justify-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                <p className="text-slate-500 font-medium">NEXT_PUBLIC_GOOGLE_SHEET_URL is not configured in .env.local</p>
               </div>
             )}
           </div>
