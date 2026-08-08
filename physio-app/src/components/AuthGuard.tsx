@@ -38,7 +38,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, status')
         .eq('id', session.user.id)
         .single();
         
@@ -47,6 +47,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       if (!role) {
         await supabase.auth.signOut();
         if (mounted) router.push('/login');
+        return;
+      }
+
+      if (role === 'doctor' && (profile?.status === 'pending' || profile?.status === 'rejected')) {
+        await supabase.auth.signOut();
+        if (mounted) router.push('/login/doctor');
         return;
       }
 

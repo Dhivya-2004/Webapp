@@ -8,7 +8,6 @@ type RegisteredUser = {
   name: string;
   email: string;
   role: 'patient' | 'doctor';
-  specialization?: string;
   registeredAt?: string;
   status?: string;
 };
@@ -339,9 +338,8 @@ export default function AdminDashboard() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500">
-                      <th className="pb-3 font-semibold">Doctor</th>
-                      <th className="pb-3 font-semibold">Specialization</th>
+                    <tr className="text-left text-sm text-slate-500 border-b border-gray-100 dark:border-slate-700/50">
+                      <th className="pb-3 font-semibold">Name</th>
                       <th className="pb-3 font-semibold">Email</th>
                       <th className="pb-3 font-semibold">Registered</th>
                       <th className="pb-3 font-semibold">Status</th>
@@ -358,11 +356,6 @@ export default function AdminDashboard() {
                             </div>
                             <span className="font-semibold text-foreground">{doc.name || '—'}</span>
                           </div>
-                        </td>
-                        <td className="py-3 text-slate-500">
-                          <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-full text-xs font-medium">
-                            {doc.specialization || 'General'}
-                          </span>
                         </td>
                         <td className="py-3 text-slate-500">{doc.email}</td>
                         <td className="py-3 text-slate-400 text-xs">
@@ -412,7 +405,7 @@ export default function AdminDashboard() {
             <h2 className="text-lg font-bold mb-4">Registered Patients</h2>
             {patients.length === 0 ? (
               <div className="text-center py-16">
-                <div className="text-5xl mb-4">🧑‍🦽</div>
+                <div className="text-5xl mb-4">🧑‍ْ</div>
                 <p className="text-slate-500 font-medium">No patients registered yet</p>
                 <p className="text-sm text-slate-400 mt-1">Patients will appear here after they register</p>
               </div>

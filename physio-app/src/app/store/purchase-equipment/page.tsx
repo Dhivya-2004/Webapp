@@ -8,17 +8,10 @@ import Link from 'next/link';
 const sampleEquipment = [
   {
     id: 'equip_1',
-    name: 'Advanced Ultrasound Therapy Machine',
-    price: 45000,
-    description: 'Professional grade ultrasound machine for clinical use with multiple frequencies.',
+    name: 'Medgears 5 in 1 Physiotherapy Machine',
+    price: 14500,
+    description: 'Professional grade 5-in-1 combo machine featuring IFT, MS, TENS, Ultrasound (US), and Deep Heat therapy. Essential for comprehensive clinical treatments.',
     image: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'equip_2',
-    name: 'Clinical Laser Therapy Unit',
-    price: 85000,
-    description: 'High-power class IV laser therapy unit for deep tissue treatment.',
-    image: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
   }
 ];
 

@@ -9,7 +9,7 @@ create table public.profiles (
   email text,
   role text check (role in ('patient', 'doctor', 'admin')),
   name text,
-  specialization text, -- For doctors
+
   address text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

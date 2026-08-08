@@ -13,7 +13,14 @@ export default function RegisterPage() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
-  const [specialization, setSpecialization] = useState('');
+  const [toast, setToast] = useState<{show: boolean; message: string; type: 'success'|'error'}>({show: false, message: '', type: 'success'});
+
+  const showToast = (message: string, type: 'success'|'error' = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }));
+    }, 4000);
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,12 +37,12 @@ export default function RegisterPage() {
       if (!errorMsg || errorMsg === '{}') {
         errorMsg = 'This email is already registered or invalid. Please try another one or sign in.';
       }
-      alert(errorMsg);
+      showToast(errorMsg, 'error');
       return;
     }
 
     if (!authData.user) {
-      alert('Registration failed. Please try again.');
+      showToast('Registration failed. Please try again.', 'error');
       return;
     }
 
@@ -51,20 +58,19 @@ export default function RegisterPage() {
           role,
           name: newName,
           address,
-          specialization: role === 'doctor' ? specialization : null,
           status: role === 'doctor' ? 'pending' : 'approved',
         }
       ]);
 
     if (profileError) {
       console.error(profileError);
-      alert('Failed to create user profile: ' + profileError.message);
+      showToast('Failed to create user profile: ' + profileError.message, 'error');
       return;
     }
     
     // Keep localStorage for partial backwards compatibility while we migrate the rest of the app
     localStorage.setItem('userRole', role);
-    localStorage.setItem('currentUser', JSON.stringify({ id: authData.user.id, email, name: newName, role, specialization, address }));
+    localStorage.setItem('currentUser', JSON.stringify({ id: authData.user.id, email, name: newName, role, address }));
 
     if (role === 'doctor') {
       try {
@@ -79,17 +85,38 @@ export default function RegisterPage() {
             userId: authData.user.id,
           }),
         });
-        alert('Registration successful! Please check your email to complete your doctor profile (simulated link in console).');
+        await supabase.auth.signOut();
+        showToast('Registration successful! Please wait for Admin approval to login.', 'success');
       } catch (error) {
         console.error('Failed to send email:', error);
       }
+    } else {
+      showToast('Registration successful! Welcome to PhysioByHarish.', 'success');
     }
 
-    router.push(`/dashboard/${role}`);
+    setTimeout(() => {
+      if (role === 'doctor') {
+        router.push('/login/doctor');
+      } else {
+        router.push(`/dashboard/${role}`);
+      }
+    }, 2500);
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-background px-4 py-12">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-background px-4 py-12 relative overflow-hidden">
+      {/* Toast Notification */}
+      <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ease-in-out ${
+        toast.show ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
+      }`}>
+        <div className={`px-6 py-4 rounded-xl shadow-2xl border font-semibold flex items-center gap-3 ${
+          toast.type === 'success' 
+            ? 'bg-green-50/90 dark:bg-green-900/90 border-green-200 dark:border-green-800 text-green-800 dark:text-green-100 backdrop-blur-md' 
+            : 'bg-red-50/90 dark:bg-red-900/90 border-red-200 dark:border-red-800 text-red-800 dark:text-red-100 backdrop-blur-md'
+        }`}>
+          {toast.type === 'success' ? '✅' : '⚠️'} {toast.message}
+        </div>
+      </div>
       <div className="glass p-8 md:p-12 rounded-3xl w-full max-w-xl shadow-2xl">
         <h1 className="text-3xl font-extrabold text-center mb-2">Create an Account</h1>
         <p className="text-slate-500 text-center mb-8">Join PhysioByHarish and get started</p>
@@ -185,23 +212,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {role === 'doctor' && (
-            <div>
-              <label className="block text-sm font-medium mb-2 text-foreground">Specialization</label>
-              <select
-                required
-                value={specialization}
-                onChange={(e) => setSpecialization(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="">Select your specialty...</option>
-                <option value="Orthopedic Physiotherapy">Orthopedic Physiotherapy</option>
-                <option value="Neurological Physiotherapy">Neurological Physiotherapy</option>
-                <option value="Pediatric Physiotherapy">Pediatric Physiotherapy</option>
-                <option value="Sports Physiotherapy">Sports Physiotherapy</option>
-              </select>
-            </div>
-          )}
+
 
           <div>
             <label className="block text-sm font-medium mb-2 text-foreground">Password</label>
