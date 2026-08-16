@@ -10,7 +10,23 @@ create table public.profiles (
   role text check (role in ('patient', 'doctor', 'admin')),
   name text,
 
+  qualification text,
+  clinic_name text,
   address text,
+  phone text,
+  gender text,
+  college_name text,
+  experience text,
+  degree_photo_url text,
+  specialization text,
+  service_procedures jsonb,
+  previous_employment_title text,
+  previous_employment_clinic text,
+  bls_acls_services jsonb,
+  special_equipment jsonb,
+  languages_known jsonb,
+  profile_photo_url text,
+  aadhar_card_url text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

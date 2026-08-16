@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 type RegisteredUser = {
@@ -8,6 +8,22 @@ type RegisteredUser = {
   name: string;
   email: string;
   role: 'patient' | 'doctor';
+  qualification?: string;
+  clinic_name?: string;
+  phone?: string;
+  gender?: string;
+  college_name?: string;
+  experience?: string;
+  degree_photo_url?: string;
+  specialization?: string;
+  service_procedures?: string[];
+  previous_employment_title?: string;
+  previous_employment_clinic?: string;
+  bls_acls_services?: string[];
+  special_equipment?: string[];
+  languages_known?: string[];
+  profile_photo_url?: string;
+  aadhar_card_url?: string;
   registeredAt?: string;
   status?: string;
 };
@@ -35,7 +51,7 @@ type Appointment = {
   bookedAt: string;
 };
 
-type Tab = 'overview' | 'doctors' | 'patients' | 'purchases' | 'appointments' | 'applications';
+type Tab = 'overview' | 'doctors' | 'patients' | 'purchases' | 'appointments';
 
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -52,6 +68,7 @@ export default function AdminDashboard() {
   const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
 
   useEffect(() => {
     if (sessionStorage.getItem('adminAuth') === 'true') {
@@ -122,12 +139,44 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDoctorStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from('profiles').update({ status }).eq('id', id);
-    if (!error) {
-      setRegisteredUsers(prev => prev.map(u => u.id === id ? { ...u, status } : u));
-    } else {
-      alert('Failed to update status: ' + error.message);
+  const handleDoctorStatus = async (doctorId: string, newStatus: 'approved' | 'rejected') => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ status: newStatus })
+        .eq('id', doctorId);
+
+      if (error) {
+        console.error('Error updating doctor status:', error);
+        return;
+      }
+
+      // Update local state
+      setRegisteredUsers(registeredUsers.map(doc => doc.id === doctorId ? { ...doc, status: newStatus } : doc));
+      
+      // Send email notification to doctor
+      const doctor = registeredUsers.find(d => d.id === doctorId);
+      if (doctor && doctor.email) {
+        try {
+          await fetch('/api/send-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: doctor.name,
+              email: doctor.email,
+              userId: doctor.id,
+              emailType: newStatus
+            }),
+          });
+        } catch (emailError) {
+          console.error('Failed to send status email:', emailError);
+        }
+      }
+
+    } catch (err) {
+      console.error('Exception updating doctor status:', err);
     }
   };
 
@@ -167,7 +216,6 @@ export default function AdminDashboard() {
     { id: 'patients', label: `Patients (${patients.length})`, emoji: '🧑‍🦽' },
     { id: 'purchases', label: `Purchases (${purchases.length})`, emoji: '🛒' },
     { id: 'appointments', label: `Appointments (${appointments.length})`, emoji: '📅' },
-    { id: 'applications', label: `Doctor Applications`, emoji: '📋' },
   ];
 
   if (!isAuthenticated) {
@@ -294,7 +342,7 @@ export default function AdminDashboard() {
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-sm truncate">{doc.name || doc.email}</p>
-                          <p className="text-xs text-slate-500 truncate">{doc.specialization || 'Physiotherapy'}</p>
+                          <p className="text-xs text-slate-500 truncate">{doc.qualification || 'Physiotherapy'}</p>
                         </div>
                       </div>
                     ))}
@@ -340,6 +388,8 @@ export default function AdminDashboard() {
                   <thead>
                     <tr className="text-left text-sm text-slate-500 border-b border-gray-100 dark:border-slate-700/50">
                       <th className="pb-3 font-semibold">Name</th>
+                      <th className="pb-3 font-semibold">Qualification</th>
+                      <th className="pb-3 font-semibold">Clinic</th>
                       <th className="pb-3 font-semibold">Email</th>
                       <th className="pb-3 font-semibold">Registered</th>
                       <th className="pb-3 font-semibold">Status</th>
@@ -348,15 +398,15 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {doctors.map((doc) => (
-                      <tr key={doc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                      <React.Fragment key={doc.id}>
+                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                         <td className="py-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                              {(doc.name || doc.email || '?')[0].toUpperCase()}
-                            </div>
+                          <div className="flex flex-col">
                             <span className="font-semibold text-foreground">{doc.name || '—'}</span>
                           </div>
                         </td>
+                        <td className="py-3 text-slate-500">{doc.qualification || '—'}</td>
+                        <td className="py-3 text-slate-500">{doc.clinic_name || '—'}</td>
                         <td className="py-3 text-slate-500">{doc.email}</td>
                         <td className="py-3 text-slate-400 text-xs">
                           {doc.registeredAt ? new Date(doc.registeredAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
@@ -374,6 +424,12 @@ export default function AdminDashboard() {
                         </td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            <button
+                               onClick={() => setExpandedDocId(expandedDocId === doc.id ? null : doc.id)}
+                               className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
+                             >
+                               {expandedDocId === doc.id ? 'Hide' : 'Details'}
+                             </button>
                             {(doc.status === 'pending') && (
                               <button
                                 onClick={() => handleDoctorStatus(doc.id, 'approved')}
@@ -391,6 +447,58 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                       </tr>
+                      {expandedDocId === doc.id && (
+                        <tr key={`${doc.id}-expanded`}>
+                          <td colSpan={7} className="px-4 py-6 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                              <div>
+                                <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-2 border-b pb-1">Personal Info</h4>
+                                <p><span className="font-semibold text-slate-500">Gender:</span> {doc.gender || 'N/A'}</p>
+                                <p><span className="font-semibold text-slate-500">Phone:</span> {doc.phone || 'N/A'}</p>
+                                <p><span className="font-semibold text-slate-500">Address:</span> {doc.address || 'N/A'}</p>
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-2 border-b pb-1">Professional Background</h4>
+                                <p><span className="font-semibold text-slate-500">College:</span> {doc.college_name || 'N/A'}</p>
+                                <p><span className="font-semibold text-slate-500">Experience:</span> {doc.experience || 'N/A'}</p>
+                                <p><span className="font-semibold text-slate-500">Specialization:</span> {doc.specialization || 'N/A'}</p>
+                                <p><span className="font-semibold text-slate-500">Previous Employment:</span> {doc.previous_employment_title ? `${doc.previous_employment_title} at ${doc.previous_employment_clinic}` : 'N/A'}</p>
+                              </div>
+                              <div className="md:col-span-2">
+                                <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-2 border-b pb-1">Services & Capabilities</h4>
+                                <p><span className="font-semibold text-slate-500">Procedures:</span> {doc.service_procedures?.join(', ') || 'N/A'}</p>
+                                <p><span className="font-semibold text-slate-500">Languages:</span> {doc.languages_known?.join(', ') || 'N/A'}</p>
+                                <p><span className="font-semibold text-slate-500">Special Equipment:</span> {doc.special_equipment?.join(', ') || 'N/A'}</p>
+                                <p><span className="font-semibold text-slate-500">BLS/ACLS:</span> {doc.bls_acls_services?.join(', ') || 'N/A'}</p>
+                              </div>
+                              <div className="md:col-span-2">
+                                <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-3 border-b pb-1">Uploaded Documents</h4>
+                                <div className="flex gap-4">
+                                  {doc.profile_photo_url && (
+                                    <a href={doc.profile_photo_url} target="_blank" rel="noreferrer" className="flex flex-col items-center p-3 border rounded-lg hover:bg-slate-100 transition-colors text-xs font-semibold">
+                                      📸 Profile Photo
+                                    </a>
+                                  )}
+                                  {doc.degree_photo_url && (
+                                    <a href={doc.degree_photo_url} target="_blank" rel="noreferrer" className="flex flex-col items-center p-3 border rounded-lg hover:bg-slate-100 transition-colors text-xs font-semibold">
+                                      🎓 Degree
+                                    </a>
+                                  )}
+                                  {doc.aadhar_card_url && (
+                                    <a href={doc.aadhar_card_url} target="_blank" rel="noreferrer" className="flex flex-col items-center p-3 border rounded-lg hover:bg-slate-100 transition-colors text-xs font-semibold">
+                                      🪪 Aadhar Card
+                                    </a>
+                                  )}
+                                  {!doc.profile_photo_url && !doc.degree_photo_url && !doc.aadhar_card_url && (
+                                    <p className="text-slate-500 text-sm">No documents uploaded.</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -662,26 +770,7 @@ export default function AdminDashboard() {
             )}
           </div>
         )}
-        {/* Applications Tab */}
-        {activeTab === 'applications' && (
-          <div className="p-6 h-[600px] flex flex-col">
-            <h2 className="text-lg font-bold mb-4">Doctor Applications (Google Form Responses)</h2>
-            <p className="text-sm text-slate-500 mb-4">
-              To view the filled details here, publish your Google Sheet to the web (File {'>'} Share {'>'} Publish to web {'>'} Embed) and add the source URL to your .env.local file as <code>NEXT_PUBLIC_GOOGLE_SHEET_URL</code>.
-            </p>
-            {process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL ? (
-              <iframe 
-                src={process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL} 
-                className="w-full flex-grow border-0 rounded-xl bg-white shadow-inner"
-                title="Google Form Responses"
-              />
-            ) : (
-              <div className="flex-grow flex items-center justify-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
-                <p className="text-slate-500 font-medium">NEXT_PUBLIC_GOOGLE_SHEET_URL is not configured in .env.local</p>
-              </div>
-            )}
-          </div>
-        )}
+
       </div>
     </div>
   );

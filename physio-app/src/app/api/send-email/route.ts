@@ -3,19 +3,15 @@ import nodemailer from 'nodemailer';
 
 export async function POST(request: Request) {
   try {
-    const { name, email, userId } = await request.json();
+    const { name, email, userId, emailType } = await request.json();
 
-    if (!name || !email || !userId) {
+    if (!name || !email || !userId || !emailType) {
       return NextResponse.json(
-        { error: 'Name, email, and userId are required' },
+        { error: 'Name, email, userId, and emailType are required' },
         { status: 400 }
       );
     }
 
-    // This is a dummy SMTP transport setup. In a real application, 
-    // you would configure this with your actual SMTP server details 
-    // (e.g., Gmail App Passwords, SendGrid, Amazon SES).
-    // For local testing, we are logging the form URL.
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.ethereal.email',
       port: Number(process.env.SMTP_PORT) || 587,
@@ -26,32 +22,49 @@ export async function POST(request: Request) {
       },
     });
 
-    const formUrl = process.env.GOOGLE_FORM_URL || 'https://docs.google.com/forms/d/e/your-form-id/viewform';
+    let subject = '';
+    let htmlContent = '';
+
+    if (emailType === 'approved') {
+      subject = 'Your Doctor Account has been Approved! - PhysioByHarish';
+      htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
+          <h2 style="color: #16a34a;">Congratulations Dr. ${name}!</h2>
+          <p style="color: #475569; line-height: 1.6;">
+            Your account application has been reviewed and <strong>approved</strong> by the administrator.
+          </p>
+          <p style="color: #475569; line-height: 1.6;">
+            You can now log in to the Doctor Portal to manage your patients, schedule appointments, and access clinical equipment.
+          </p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="https://yourwebsite.com/login" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+              Log In to Portal
+            </a>
+          </div>
+        </div>
+      `;
+    } else if (emailType === 'rejected') {
+      subject = 'Update on your Doctor Application - PhysioByHarish';
+      htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
+          <h2 style="color: #dc2626;">Application Update for Dr. ${name}</h2>
+          <p style="color: #475569; line-height: 1.6;">
+            Thank you for your interest in joining PhysioByHarish. Unfortunately, after reviewing your application, we are unable to approve your account at this time.
+          </p>
+          <p style="color: #475569; line-height: 1.6;">
+            If you believe this is a mistake or wish to provide additional documentation, please reply to this email to contact support.
+          </p>
+        </div>
+      `;
+    } else {
+       return NextResponse.json({ error: 'Invalid emailType' }, { status: 400 });
+    }
 
     const mailOptions = {
       from: '"PhysioByHarish" <divyamsk21@gmail.com>',
       to: email,
-      subject: 'Complete Your Doctor Registration - PhysioByHarish',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
-          <h2 style="color: #2563eb;">Welcome to PhysioByHarish, Dr. ${name}!</h2>
-          <p style="color: #475569; line-height: 1.6;">
-            Thank you for registering with us. To complete your doctor profile and gain full access to the platform, we need a few more details about your educational background.
-          </p>
-          <p style="color: #475569; line-height: 1.6;">
-            Please click the button below to fill out our Google Form with your qualification details:
-          </p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${formUrl}" target="_blank" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-              Fill Out Google Form
-            </a>
-          </div>
-          <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-top: 20px;">
-            If the button doesn't work, copy and paste this link into your browser: <br/>
-            <a href="${formUrl}" style="color: #2563eb;">${formUrl}</a>
-          </p>
-        </div>
-      `,
+      subject: subject,
+      html: htmlContent,
     };
 
     // We simulate sending the email if credentials are dummy
@@ -59,7 +72,6 @@ export async function POST(request: Request) {
       console.log('--- SIMULATED EMAIL SENT ---');
       console.log(`To: ${email}`);
       console.log(`Subject: ${mailOptions.subject}`);
-      console.log(`Link: ${formUrl}`);
       console.log('----------------------------');
       
       return NextResponse.json({ success: true, message: 'Simulated email sent successfully' });
