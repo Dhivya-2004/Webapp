@@ -235,6 +235,7 @@ export default function RegisterPage() {
 
     if (profileError) {
       setIsSubmitting(false);
+      // eslint-disable-next-line no-console
       console.error(profileError);
       showToast('Failed to create user profile: ' + profileError.message, 'error');
       return;
