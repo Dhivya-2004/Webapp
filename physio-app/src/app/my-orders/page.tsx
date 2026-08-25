@@ -15,6 +15,8 @@ interface Purchase {
   patientEmail: string;
   patientName: string;
   purchasedAt: string;
+  paymentMethod?: string;
+  productImage?: string;
 }
 
 export default function MyOrdersPage() {
@@ -41,14 +43,19 @@ export default function MyOrdersPage() {
           .order('created_at', { ascending: false });
 
         if (purchases) {
-          setOrders(purchases.map(p => ({
-            ...p,
-            productId: p.product_id,
-            productName: p.product_name,
-            purchasedAt: p.created_at,
-            patientEmail: '',
-            patientName: ''
-          })));
+          setOrders(purchases.map(p => {
+            const productInfo = mockProducts.find(m => m.id === p.product_id);
+            return {
+              ...p,
+              productId: p.product_id,
+              productName: p.product_name,
+              purchasedAt: p.created_at,
+              paymentMethod: p.payment_method,
+              productImage: productInfo?.image || '',
+              patientEmail: '',
+              patientName: ''
+            };
+          }));
         }
 
         const storedWishlist = JSON.parse(localStorage.getItem(`wishlist_${adminId}`) || '[]');
@@ -77,14 +84,19 @@ export default function MyOrdersPage() {
         .order('created_at', { ascending: false });
         
       if (purchases) {
-        setOrders(purchases.map(p => ({
-          ...p,
-          productId: p.product_id,
-          productName: p.product_name,
-          purchasedAt: p.created_at,
-          patientEmail: '',
-          patientName: ''
-        })));
+        setOrders(purchases.map(p => {
+          const productInfo = mockProducts.find(m => m.id === p.product_id);
+          return {
+            ...p,
+            productId: p.product_id,
+            productName: p.product_name,
+            purchasedAt: p.created_at,
+            paymentMethod: p.payment_method,
+            productImage: productInfo?.image || '',
+            patientEmail: '',
+            patientName: ''
+          };
+        }));
       }
 
       // Load wishlist
@@ -128,6 +140,25 @@ export default function MyOrdersPage() {
     setCartItems(newCart);
   };
 
+  const handleCancelOrder = async (orderId: string) => {
+    const reason = window.prompt('Please provide a reason for cancelling this order:');
+    if (reason === null) return; // User clicked cancel on prompt
+    
+    const newStatus = reason.trim() ? `Cancelled|${reason.trim()}` : 'Cancelled';
+
+    const { error } = await supabase
+      .from('purchases')
+      .update({ status: newStatus })
+      .eq('id', orderId);
+
+    if (error) {
+      alert('Failed to cancel order.');
+      console.error(error);
+    } else {
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    }
+  };
+
   if (isLoading || !isLoggedIn) {
     return (
       <div className="flex justify-center items-center h-[50vh]">
@@ -156,7 +187,7 @@ export default function MyOrdersPage() {
               : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
           }`}
         >
-          My Orders
+          My Purchases
         </button>
         <button
           onClick={() => setActiveTab('wishlist')}
@@ -202,6 +233,11 @@ export default function MyOrdersPage() {
               key={order.id}
               className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row gap-6 items-center"
             >
+              {order.productImage && (
+                <div className="h-24 w-24 bg-slate-50 dark:bg-slate-900 rounded-xl p-2 flex-shrink-0">
+                  <img src={order.productImage} alt={order.productName} className="h-full w-full object-contain" />
+                </div>
+              )}
               <div className="flex-1 w-full">
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -215,11 +251,19 @@ export default function MyOrdersPage() {
                   <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
                     order.status === 'Delivered' 
                       ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : order.status?.startsWith('Cancelled')
+                      ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                       : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                   }`}>
-                    {order.status || 'Processing'}
+                    {order.status?.startsWith('Cancelled') ? 'Cancelled' : (order.status || 'Processing')}
                   </span>
                 </div>
+                
+                {order.status?.startsWith('Cancelled|') && (
+                  <div className="mb-4 text-xs font-medium text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 p-3 rounded-lg border border-red-100 dark:border-red-900/30">
+                    <span className="font-bold">Cancellation Reason:</span> {order.status.split('|')[1]}
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                   <div>
@@ -233,10 +277,63 @@ export default function MyOrdersPage() {
                     </p>
                   </div>
                   <div>
+                    <p className="text-xs text-slate-500 uppercase font-bold tracking-wide">Payment</p>
+                    <p className="font-medium text-sm mt-1 text-slate-700 dark:text-slate-300">
+                      {order.paymentMethod === 'ONLINE' ? 'Paid Online' : (order.paymentMethod === 'COD' ? 'Cash on Delivery' : (order.paymentMethod || 'Unknown'))}
+                    </p>
+                  </div>
+                  <div>
                     <p className="text-xs text-slate-500 uppercase font-bold tracking-wide">Price</p>
                     <p className="font-medium text-sm mt-1 text-primary">₹{order.price}</p>
                   </div>
                 </div>
+
+                {/* Order Tracking Stepper */}
+                {!order.status?.startsWith('Cancelled') && (
+                  <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700 max-w-xl mx-auto">
+                    <div className="flex justify-between items-center relative">
+                      <div className="absolute left-0 top-3 -translate-y-1/2 w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+                      
+                      {/* Calculate width based on status */}
+                      <div className="absolute left-0 top-3 -translate-y-1/2 h-1 bg-green-500 rounded-full transition-all duration-500" style={{
+                        width: (!order.status || order.status === 'Ordered') ? '0%' : 
+                               order.status === 'Processing' ? '50%' : 
+                               order.status === 'Delivered' ? '100%' : '0%'
+                      }}></div>
+
+                      {['Ordered', 'Processing', 'Delivered'].map((step, idx) => {
+                        const isCompleted = 
+                          (order.status === 'Delivered') || 
+                          (order.status === 'Processing' && idx <= 1) ||
+                          ((!order.status || order.status === 'Ordered') && idx === 0);
+
+                        return (
+                          <div key={step} className="relative z-10 flex flex-col items-center gap-2">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                              isCompleted ? 'bg-green-500 text-white shadow-md shadow-green-500/30' : 'bg-slate-200 text-slate-400 dark:bg-slate-700'
+                            }`}>
+                              {isCompleted ? '✓' : idx + 1}
+                            </div>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider ${isCompleted ? 'text-foreground' : 'text-slate-400'}`}>
+                              {step}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {(!order.status || order.status === 'Ordered' || order.status === 'Processing') && (
+                  <div className="mt-6 flex justify-end">
+                    <button
+                      onClick={() => handleCancelOrder(order.id)}
+                      className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-xl text-sm font-bold transition-colors"
+                    >
+                      Cancel Order
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}

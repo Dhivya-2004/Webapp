@@ -15,6 +15,16 @@ export default function StorePage() {
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
   const [wishlist, setWishlist] = useState<string[]>([]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const query = new URLSearchParams(window.location.search);
+      if (query.get('canceled')) {
+        alert('Payment was canceled. Please try again.');
+        window.history.replaceState(null, '', '/store');
+      }
+    }
+  }, []);
+
   const handleSizeSelect = (productId: string, size: string) => {
     setSelectedSizes(prev => ({ ...prev, [productId]: size }));
   };
@@ -93,17 +103,12 @@ export default function StorePage() {
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
+  const loadStripe = async () => {
+    const { loadStripe: loadStripeSDK } = await import('@stripe/stripe-js');
+    return loadStripeSDK(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_YourStripePublishableKeyHere');
   };
 
-  const handlePurchase = async (method: 'COD' | 'UPI') => {
+  const handlePurchase = async (method: 'COD' | 'ONLINE') => {
     if (!selectedProduct || !currentUser) return;
 
     if (userRole === 'admin') {
@@ -134,129 +139,27 @@ export default function StorePage() {
 
     const purchase_id = insertedData?.[0]?.id;
     
-    if (method === 'UPI') {
-      const res = await loadRazorpayScript();
-      if (!res) {
-        alert('Razorpay SDK failed to load. Are you online?');
-        return;
-      }
-
-      // Create order by calling our backend
-      const orderResponse = await fetch('/api/create-order', {
+    if (method === 'ONLINE') {
+      // Create checkout session
+      const sessionResponse = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: price, receipt: `receipt_${purchase_id}` })
+        body: JSON.stringify({ 
+          amount: price, 
+          product_name: selectedProduct.name,
+          purchase_id: purchase_id 
+        })
       });
-      const orderData = await orderResponse.json();
+      
+      const sessionData = await sessionResponse.json();
 
-      if (!orderData || orderData.error) {
-        alert('Server error. Are you online?');
+      if (!sessionData || sessionData.error) {
+        alert('Server error creating checkout session.');
         return;
       }
 
-      const rzpKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_dummykey12345';
-
-      if (rzpKey === 'rzp_test_dummykey12345') {
-        // Direct UPI intent for demonstration
-        const upiId = 'physiobyharish@ybl'; // Dummy UPI ID
-        const name = 'PhysioByHarish';
-        const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${price}&cu=INR&tn=${encodeURIComponent('Payment for ' + selectedProduct.name)}`;
-        
-        // Attempt to open UPI apps (GPay, PhonePe, Paytm, etc.)
-        window.location.href = upiUrl;
-
-        // Since generic UPI deep links on web don't provide a success callback back to the browser,
-        // we simulate the verification after they return to the app.
-        setTimeout(async () => {
-          const confirmed = window.confirm('Did you complete the payment successfully on your UPI app? (Simulated callback)');
-          if (confirmed) {
-            const verifyRes = await fetch('/api/verify-payment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id: orderData.id,
-                razorpay_payment_id: 'pay_dummy_' + Math.random().toString(36).substring(7),
-                razorpay_signature: 'dummy_signature',
-                purchase_id: purchase_id,
-                is_mock: true
-              }),
-            });
-            
-            const verifyData = await verifyRes.json();
-            if (verifyData.success) {
-              alert(`Payment of ₹${price} successful! Purchase completed.`);
-              try {
-                await fetch('/api/sms', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    message: `Payment Received for ${selectedProduct.name}. Amount: Rs ${price}. Payment: ${method}.`,
-                    number: '6385842977'
-                  })
-                });
-              } catch(e) {}
-            }
-          } else {
-            alert('Payment cancelled or failed.');
-          }
-          setSelectedProduct(null);
-        }, 2000);
-        return;
-      }
-
-      const options = {
-        key: rzpKey, 
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: 'PhysioByHarish',
-        description: `Payment for ${selectedProduct.name}`,
-        order_id: orderData.id,
-        handler: async function (response: any) {
-          // Verify payment
-          const verifyRes = await fetch('/api/verify-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              purchase_id: purchase_id,
-            }),
-          });
-          
-          const verifyData = await verifyRes.json();
-          if (verifyData.success) {
-            alert(`Payment of ₹${price} successful! Purchase completed.`);
-            
-            // Send SMS notification
-            try {
-              await fetch('/api/sms', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  message: `Payment Received for ${selectedProduct.name} at PhysioByHarish. Amount: Rs ${price}. Payment: ${method}.`,
-                  number: '6385842977'
-                })
-              });
-            } catch(e) {
-              console.error(e);
-            }
-          } else {
-            alert('Payment verification failed!');
-          }
-        },
-        prefill: {
-          name: currentUser.user_metadata?.full_name || 'Customer',
-          email: currentUser.email,
-        },
-        theme: {
-          color: '#2563eb' // Matches primary blue theme
-        }
-      };
-
-      const paymentObject = new (window as any).Razorpay(options);
-      paymentObject.open();
-
+      // Directly redirect the browser to the Stripe Checkout URL returned by our backend
+      window.location.href = sessionData.url;
     } else {
       // COD Logic
       try {
@@ -271,7 +174,7 @@ export default function StorePage() {
       } catch(e) {
         console.error(e);
       }
-      alert(`Successfully purchased ${selectedProduct.name} for ₹${price} via Cash on Delivery!\n\n📱 SMS sent to 6385842977: Order received for ${selectedProduct.name}.`);
+      window.location.href = '/store/success';
     }
 
     setSelectedProduct(null);
@@ -479,10 +382,10 @@ export default function StorePage() {
                 <span>💵</span> Cash on Delivery
               </button>
               <button
-                onClick={() => handlePurchase('UPI')}
+                onClick={() => handlePurchase('ONLINE')}
                 className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
               >
-                <span>📱</span> Pay with UPI
+                <span>💳</span> Pay Online (Stripe)
               </button>
               <button
                 onClick={() => setSelectedProduct(null)}

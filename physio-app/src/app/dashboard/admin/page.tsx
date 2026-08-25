@@ -128,7 +128,7 @@ export default function AdminDashboard() {
 
   const doctors = registeredUsers.filter((u) => u.role === 'doctor');
   const patients = registeredUsers.filter((u) => u.role === 'patient');
-  const totalRevenue = purchases.reduce((sum, p) => sum + p.price, 0);
+  const totalRevenue = purchases.reduce((sum, p) => (p.status?.startsWith('Cancelled') ? sum : sum + p.price), 0);
 
   const handleRemoveUser = async (id: string) => {
     const { error } = await supabase.from('profiles').delete().eq('id', id);
@@ -607,12 +607,17 @@ export default function AdminDashboard() {
                           <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                             purchase.status === 'Delivered'
                               ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                              : purchase.status === 'Cancelled'
+                              : purchase.status?.startsWith('Cancelled')
                               ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
                               : 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
                           }`}>
-                            {purchase.status || 'Ordered'}
+                            {purchase.status?.startsWith('Cancelled') ? 'Cancelled' : (purchase.status || 'Ordered')}
                           </span>
+                          {purchase.status?.startsWith('Cancelled|') && (
+                            <p className="text-[10px] text-red-500 font-medium mt-1 ml-1 truncate max-w-[150px]" title={purchase.status.split('|')[1]}>
+                              Reason: {purchase.status.split('|')[1]}
+                            </p>
+                          )}
                         </td>
                         <td className="py-3">
                           <div>
@@ -620,7 +625,9 @@ export default function AdminDashboard() {
                             <p className="text-xs text-slate-400">{purchase.patientEmail}</p>
                           </div>
                         </td>
-                        <td className="py-3 font-bold text-emerald-600">₹{purchase.price}</td>
+                        <td className={`py-3 font-bold ${purchase.status?.startsWith('Cancelled') ? 'text-slate-400 line-through' : 'text-emerald-600'}`}>
+                          ₹{purchase.price}
+                        </td>
                         <td className="py-3 text-slate-400 text-xs">
                           {new Date(purchase.purchasedAt).toLocaleDateString('en-IN', {
                             day: 'numeric', month: 'short', year: 'numeric',

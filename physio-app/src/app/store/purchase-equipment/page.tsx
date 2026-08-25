@@ -24,11 +24,11 @@ export default function PurchaseEquipmentPage() {
     const role = localStorage.getItem('userRole');
     if (role === 'doctor' || role === 'admin') {
       setIsAuthorized(true);
+      setLoading(false);
     } else {
       // Redirect unauthorized users (like patients or guests) back to the store
-      router.push('/store');
+      window.location.href = '/store';
     }
-    setLoading(false);
   }, [router]);
 
   const handlePurchase = (equipmentName: string) => {

@@ -10,9 +10,9 @@ export default function PatientDashboard() {
   const [reason, setReason] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [myAppointments, setMyAppointments] = useState<any[]>([]);
-  const [myPurchases, setMyPurchases] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [doctors, setDoctors] = useState<any[]>([]);
+  const [doctorSearch, setDoctorSearch] = useState('');
 
   useEffect(() => {
     async function fetchData() {
@@ -37,24 +37,18 @@ export default function PatientDashboard() {
           doctorSpecialization: a.doctor?.specialization || 'General'
         })));
       }
-
-      const { data: purch } = await supabase.from('purchases').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false });
-      if (purch) setMyPurchases(purch.map(p => ({ ...p, purchasedAt: p.created_at })));
     }
     
     fetchData();
   }, []);
 
-  const handlePurchaseStatus = async (id: string, newStatus: string) => {
-    const { error } = await supabase.from('purchases').update({ status: newStatus }).eq('id', id);
-    if (!error) {
-      setMyPurchases(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p));
-    }
-  };
-
   const handleBook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
+    if (!selectedDoctor) {
+      alert("Please select a doctor to request an appointment.");
+      return;
+    }
     
     const newAppointment = {
       patient_id: currentUser.id,
@@ -77,10 +71,16 @@ export default function PatientDashboard() {
         doctorSpecialization: data.doctor?.specialization || 'General'
       }, ...prev]);
       
-      const patientName = currentUser.name || 'Patient';
+      const selectedDocData = doctors.find(d => d.id === selectedDoctor);
+      let docPhone = selectedDocData?.phone || '6385842977';
+      docPhone = docPhone.replace(/\D/g, ''); // strip non-digits
+      if (docPhone.length === 10) docPhone = '91' + docPhone; // Add India country code if missing
+      
+      const patientName = currentUser.name || currentUser.email || 'Patient';
+      const patientPhone = currentUser.phone || 'Not provided';
       const address = currentUser.address || 'Not provided';
-      const message = `*New Appointment Request*\n\n*Patient:* ${patientName}\n*Address:* ${address}\n*Date:* ${date}\n*Time:* ${time}\n*Details:* ${reason || 'General consultation'}`;
-      const whatsappUrl = `https://wa.me/916385842977?text=${encodeURIComponent(message)}`;
+      const message = `*New Appointment Request*\n\n*Patient Details:*\nName: ${patientName}\nPhone: ${patientPhone}\nAddress: ${address}\n\n*Appointment Details:*\nDate: ${date}\nTime: ${time}\nReason: ${reason || 'General consultation'}`;
+      const whatsappUrl = `https://wa.me/${docPhone}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
 
       setBookingSuccess(true);
@@ -91,8 +91,17 @@ export default function PatientDashboard() {
         setTime('');
         setReason('');
       }, 3000);
+    } else {
+      console.error(error);
+      alert('Failed to book appointment. Please try again.');
     }
   };
+
+  const filteredDoctors = doctors.filter(doc => 
+    (doc.name || '').toLowerCase().includes(doctorSearch.toLowerCase()) || 
+    (doc.specialization || '').toLowerCase().includes(doctorSearch.toLowerCase()) ||
+    (doc.clinic_name || '').toLowerCase().includes(doctorSearch.toLowerCase())
+  );
 
   return (
     <div className="space-y-8">
@@ -125,19 +134,54 @@ export default function PatientDashboard() {
               </div>
             ) : (
               <form onSubmit={handleBook} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Select a Doctor</label>
-                  <select 
-                    required
-                    value={selectedDoctor}
-                    onChange={(e) => setSelectedDoctor(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="">Choose...</option>
-                    {doctors.map(doc => (
-                      <option key={doc.id} value={doc.id}>{doc.name} - {doc.specialization}</option>
-                    ))}
-                  </select>
+                
+                {/* Doctor Selection */}
+                <div className="mb-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                    <label className="block text-sm font-medium">Select a Doctor</label>
+                    <input 
+                      type="text" 
+                      placeholder="Search by name, clinic..." 
+                      value={doctorSearch}
+                      onChange={e => setDoctorSearch(e.target.value)}
+                      className="px-4 py-2 text-sm rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto p-1 scrollbar-hide">
+                    {filteredDoctors.length === 0 ? (
+                      <p className="text-sm text-slate-500 col-span-full py-4 text-center">No doctors found matching your search.</p>
+                    ) : (
+                      filteredDoctors.map(doc => (
+                        <div 
+                          key={doc.id}
+                          onClick={() => setSelectedDoctor(doc.id)}
+                          className={`cursor-pointer rounded-2xl border p-4 transition-all hover-lift ${selectedDoctor === doc.id ? 'border-primary ring-2 ring-primary/50 bg-primary/5 shadow-md' : 'border-gray-200 dark:border-gray-700 hover:border-primary/40 bg-white dark:bg-slate-800'}`}
+                        >
+                          <div className="flex items-start gap-4">
+                            <img 
+                              src={doc.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.name || 'Doctor')}&background=random`} 
+                              alt={doc.name} 
+                              className="w-16 h-16 rounded-full object-cover shadow-sm border border-slate-100 dark:border-slate-700 bg-slate-50"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-base truncate" title={doc.name}>{doc.name || 'Unknown Doctor'}</h4>
+                              <p className="text-primary text-xs font-bold uppercase tracking-wide truncate mt-0.5">{doc.specialization || 'General'}</p>
+                              
+                              <div className="text-xs text-slate-500 mt-2 space-y-1">
+                                {doc.qualification && <p className="truncate" title={doc.qualification}>🎓 {doc.qualification}</p>}
+                                {doc.experience && <p>💼 {doc.experience} Years Exp.</p>}
+                                {doc.clinic_name && <p className="truncate" title={doc.clinic_name}>🏥 {doc.clinic_name}</p>}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  {!selectedDoctor && (
+                    <p className="text-xs text-red-500 mt-2 font-medium">* Please select a doctor from the list above.</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -176,7 +220,12 @@ export default function PatientDashboard() {
 
                 <button
                   type="submit"
-                  className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-bold text-lg hover-lift shadow-lg shadow-primary/20"
+                  disabled={!selectedDoctor}
+                  className={`w-full py-4 rounded-xl font-bold text-lg transition-all shadow-lg ${
+                    selectedDoctor 
+                      ? 'bg-primary text-primary-foreground hover-lift shadow-primary/20' 
+                      : 'bg-slate-300 text-slate-500 cursor-not-allowed dark:bg-slate-800 dark:text-slate-600'
+                  }`}
                 >
                   Request Appointment
                 </button>
@@ -186,77 +235,36 @@ export default function PatientDashboard() {
         </div>
 
         <div className="space-y-4">
-          <div className="glass p-6 rounded-3xl">
+          <div className="glass p-6 rounded-3xl h-full">
             <h3 className="text-xl font-bold mb-4">My Appointments</h3>
             {myAppointments.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-6">No appointments booked yet</p>
+              <div className="text-center py-12 px-4">
+                <div className="text-4xl mb-4 opacity-50">📅</div>
+                <p className="text-sm text-slate-500">No appointments booked yet.</p>
+                <p className="text-xs text-slate-400 mt-2">Your upcoming sessions will appear here.</p>
+              </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-hide">
                 {[...myAppointments].reverse().map((apt: any) => (
-                  <div key={apt.id} className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-white/50 dark:bg-slate-800/50">
+                  <div key={apt.id} className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 transition-colors">
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <p className="font-bold text-sm">{apt.doctorName}</p>
-                        <p className="text-xs text-slate-500">{apt.doctorSpecialization}</p>
+                        <p className="text-xs text-primary font-medium">{apt.doctorSpecialization}</p>
                       </div>
-                      <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
-                        apt.status === 'approved' ? 'bg-green-100 text-green-700' :
-                        apt.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                        'bg-yellow-100 text-yellow-800'
+                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${
+                        apt.status === 'approved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                        apt.status === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                       }`}>
-                        {apt.status.charAt(0).toUpperCase() + apt.status.slice(1)}
+                        {apt.status}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-500">
-                      <span>📅 {apt.date}</span>
-                      <span>⏰ {apt.time}</span>
+                    <div className="flex items-center gap-4 text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg mt-3">
+                      <span className="flex items-center gap-1">📅 {apt.date}</span>
+                      <span className="flex items-center gap-1">⏰ {apt.time}</span>
                     </div>
-                    {apt.reason && <p className="text-xs text-slate-400 mt-1 italic">{apt.reason}</p>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="glass p-6 rounded-3xl mt-6">
-            <h3 className="text-xl font-bold mb-4">My Purchases</h3>
-            {myPurchases.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-6">No purchases made yet</p>
-            ) : (
-              <div className="space-y-3">
-                {[...myPurchases].reverse().map((purchase: any) => (
-                  <div key={purchase.id} className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-white/50 dark:bg-slate-800/50">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-bold text-sm">{purchase.productName}</p>
-                        <p className="text-xs text-slate-500">₹{purchase.price}</p>
-                      </div>
-                      <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
-                        purchase.status === 'Delivered' ? 'bg-green-100 text-green-700' :
-                        purchase.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
-                        'bg-blue-100 text-blue-700'
-                      }`}>
-                        {purchase.status || 'Ordered'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-500 mb-2">
-                      <span>📅 {new Date(purchase.purchasedAt).toLocaleDateString()}</span>
-                    </div>
-                    {(!purchase.status || purchase.status === 'Ordered') && (
-                      <div className="flex gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                        <button
-                          onClick={() => handlePurchaseStatus(purchase.id, 'Delivered')}
-                          className="flex-1 py-1.5 text-xs font-bold text-green-700 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 rounded-lg transition-colors"
-                        >
-                          Mark Delivered
-                        </button>
-                        <button
-                          onClick={() => handlePurchaseStatus(purchase.id, 'Cancelled')}
-                          className="flex-1 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 rounded-lg transition-colors"
-                        >
-                          Cancel Order
-                        </button>
-                      </div>
-                    )}
+                    {apt.reason && <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 italic leading-relaxed line-clamp-2">"{apt.reason}"</p>}
                   </div>
                 ))}
               </div>
