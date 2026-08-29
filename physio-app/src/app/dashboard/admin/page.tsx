@@ -10,6 +10,7 @@ type RegisteredUser = {
   role: 'patient' | 'doctor';
   qualification?: string;
   clinic_name?: string;
+  address?: string;
   phone?: string;
   gender?: string;
   college_name?: string;
