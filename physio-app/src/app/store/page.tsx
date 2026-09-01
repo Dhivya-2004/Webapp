@@ -9,6 +9,10 @@ export default function StorePage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  
+  // UPI State
+  const [showUpiPayment, setShowUpiPayment] = useState(false);
+  const [upiTxnId, setUpiTxnId] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<(typeof mockProducts[0] & { selectedSize?: string }) | null>(null);
@@ -108,12 +112,14 @@ export default function StorePage() {
     return loadStripeSDK(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_YourStripePublishableKeyHere');
   };
 
-  const handlePurchase = async (method: 'COD' | 'ONLINE') => {
+  const handlePurchase = async (method: 'COD' | 'ONLINE' | 'UPI', txnId?: string) => {
     if (!selectedProduct || !currentUser) return;
 
     if (userRole === 'admin') {
       alert("Admin accounts are for management only and cannot make purchases. Please log in as a Patient or Doctor to test the purchase flow.");
       setSelectedProduct(null);
+      setShowUpiPayment(false);
+      setUpiTxnId('');
       return;
     }
 
@@ -125,7 +131,7 @@ export default function StorePage() {
       product_name: selectedProduct.name,
       size: selectedProduct.selectedSize || null,
       price,
-      payment_method: method,
+      payment_method: method === 'UPI' ? `UPI (Txn: ${txnId})` : method,
       status: 'Ordered',
     };
 
@@ -160,6 +166,21 @@ export default function StorePage() {
 
       // Directly redirect the browser to the Stripe Checkout URL returned by our backend
       window.location.href = sessionData.url;
+    } else if (method === 'UPI') {
+      // UPI Logic
+      try {
+        await fetch('/api/sms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Order received for ${selectedProduct.name} at PhysioByHarish. Amount: Rs ${price}. Payment: UPI. Txn: ${txnId}`,
+            number: '6385842977'
+          })
+        });
+      } catch(e) {
+        console.error(e);
+      }
+      window.location.href = '/store/success';
     } else {
       // COD Logic
       try {
@@ -178,6 +199,8 @@ export default function StorePage() {
     }
 
     setSelectedProduct(null);
+    setShowUpiPayment(false);
+    setUpiTxnId('');
   };
 
   return (
@@ -347,7 +370,11 @@ export default function StorePage() {
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              onClick={() => setSelectedProduct(null)}
+              onClick={() => {
+                setSelectedProduct(null);
+                setShowUpiPayment(false);
+                setUpiTxnId('');
+              }}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold"
             >
               ✕
@@ -373,27 +400,91 @@ export default function StorePage() {
               </p>
             </div>
 
-            {/* Actions */}
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => handlePurchase('COD')}
-                className="w-full py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20 flex items-center justify-center gap-2"
-              >
-                <span>💵</span> Cash on Delivery
-              </button>
-              <button
-                onClick={() => handlePurchase('ONLINE')}
-                className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
-              >
-                <span>💳</span> Pay Online (Stripe)
-              </button>
-              <button
-                onClick={() => setSelectedProduct(null)}
-                className="w-full py-3 rounded-xl border border-gray-300 dark:border-gray-700 font-semibold text-foreground hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors mt-2"
-              >
-                Cancel
-              </button>
-            </div>
+            {/* UPI Payment Flow */}
+            {showUpiPayment ? (
+              <div className="flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 text-center border border-slate-200 dark:border-slate-700">
+                  <p className="text-sm font-semibold mb-2 text-foreground">Scan & Pay using any UPI app</p>
+                  
+                  {/* Fake QR Code box for visual feedback */}
+                  <div className="w-32 h-32 mx-auto bg-white border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl flex items-center justify-center p-2 mb-3">
+                    <div className="text-center">
+                      <span className="text-3xl">📱</span>
+                      <p className="text-[10px] text-slate-400 font-medium mt-1">QR CODE</p>
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm font-bold text-foreground">UPI ID: physio@upi</p>
+                  <p className="text-xs text-slate-500 mt-1">Amount to pay: ₹{selectedProduct.price}</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 ml-1">
+                    Enter 12-digit UTR / Transaction ID
+                  </label>
+                  <input 
+                    type="text" 
+                    value={upiTxnId}
+                    onChange={(e) => setUpiTxnId(e.target.value)}
+                    placeholder="e.g. 123456789012"
+                    className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => setShowUpiPayment(false)}
+                    className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (upiTxnId.length < 5) {
+                        alert("Please enter a valid Transaction ID.");
+                        return;
+                      }
+                      handlePurchase('UPI', upiTxnId);
+                    }}
+                    className="flex-[2] py-3 rounded-xl bg-purple-600 text-white font-semibold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-600/20"
+                  >
+                    Submit Payment
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Normal Actions */
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => setShowUpiPayment(true)}
+                  className="w-full py-3 rounded-xl bg-purple-600 text-white font-semibold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-600/20 flex items-center justify-center gap-2"
+                >
+                  <span>📱</span> Direct UPI / Bank Transfer
+                </button>
+                <button
+                  onClick={() => handlePurchase('COD')}
+                  className="w-full py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20 flex items-center justify-center gap-2"
+                >
+                  <span>💵</span> Cash on Delivery
+                </button>
+                <button
+                  onClick={() => handlePurchase('ONLINE')}
+                  className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
+                >
+                  <span>💳</span> Pay Online (Stripe)
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedProduct(null);
+                    setShowUpiPayment(false);
+                    setUpiTxnId('');
+                  }}
+                  className="w-full py-3 rounded-xl border border-gray-300 dark:border-gray-700 font-semibold text-foreground hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors mt-2"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

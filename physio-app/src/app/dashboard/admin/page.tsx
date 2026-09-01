@@ -37,6 +37,7 @@ type Purchase = {
   patientName: string;
   patientEmail: string;
   purchasedAt: string;
+  payment_method: string;
 };
 
 type Appointment = {
@@ -596,6 +597,7 @@ export default function AdminDashboard() {
                       <th className="pb-3 font-semibold">Status</th>
                       <th className="pb-3 font-semibold">Patient</th>
                       <th className="pb-3 font-semibold">Price</th>
+                      <th className="pb-3 font-semibold">Payment</th>
                       <th className="pb-3 font-semibold">Date</th>
                       <th className="pb-3 font-semibold text-right">Action</th>
                     </tr>
@@ -621,13 +623,16 @@ export default function AdminDashboard() {
                           )}
                         </td>
                         <td className="py-3">
-                          <div>
-                            <p className="font-medium text-foreground">{purchase.patientName}</p>
-                            <p className="text-xs text-slate-400">{purchase.patientEmail}</p>
-                          </div>
+                          <div className="font-semibold text-foreground">{purchase.patientName}</div>
+                          <div className="text-slate-500 text-xs">{purchase.patientEmail}</div>
                         </td>
-                        <td className={`py-3 font-bold ${purchase.status?.startsWith('Cancelled') ? 'text-slate-400 line-through' : 'text-emerald-600'}`}>
-                          ₹{purchase.price}
+                        <td className="py-4">
+                          <span className={purchase.status?.startsWith('Cancelled') ? 'line-through text-slate-400' : 'text-emerald-600 font-bold'}>
+                            ₹{purchase.price}
+                          </span>
+                        </td>
+                        <td className="py-4 text-sm font-medium text-slate-600 dark:text-slate-300">
+                          {purchase.payment_method === 'ONLINE' ? 'Stripe' : purchase.payment_method || 'Unknown'}
                         </td>
                         <td className="py-3 text-slate-400 text-xs">
                           {new Date(purchase.purchasedAt).toLocaleDateString('en-IN', {
