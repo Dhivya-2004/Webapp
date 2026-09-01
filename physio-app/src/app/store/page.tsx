@@ -455,7 +455,7 @@ export default function StorePage() {
                     </div>
                   </div>
                   
-                  <p className="text-sm font-bold text-foreground">UPI ID: physio@upi</p>
+                  <p className="text-sm font-bold text-foreground">UPI ID: divyamsk21@okaxis</p>
                   <p className="text-xs text-slate-500 mt-1">Amount to pay: ₹{selectedProduct.price}</p>
                 </div>
                 
