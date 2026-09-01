@@ -107,9 +107,14 @@ export default function StorePage() {
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const loadStripe = async () => {
-    const { loadStripe: loadStripeSDK } = await import('@stripe/stripe-js');
-    return loadStripeSDK(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_YourStripePublishableKeyHere');
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
   };
 
   const handlePurchase = async (method: 'COD' | 'ONLINE' | 'UPI', txnId?: string) => {
@@ -146,8 +151,8 @@ export default function StorePage() {
     const purchase_id = insertedData?.[0]?.id;
     
     if (method === 'ONLINE') {
-      // Create checkout session
-      const sessionResponse = await fetch('/api/create-checkout-session', {
+      // Create Razorpay order
+      const orderResponse = await fetch('/api/create-razorpay-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -157,15 +162,45 @@ export default function StorePage() {
         })
       });
       
-      const sessionData = await sessionResponse.json();
+      const orderData = await orderResponse.json();
 
-      if (!sessionData || sessionData.error) {
-        alert('Server error creating checkout session.');
+      if (!orderData || orderData.error) {
+        alert('Server error creating payment order.');
         return;
       }
 
-      // Directly redirect the browser to the Stripe Checkout URL returned by our backend
-      window.location.href = sessionData.url;
+      const res = await loadRazorpay();
+      if (!res) {
+        alert('Razorpay SDK failed to load. Are you online?');
+        return;
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_dummy',
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'PhysioByHarish',
+        description: `Purchase of ${selectedProduct.name}`,
+        order_id: orderData.id,
+        handler: function (response: any) {
+          // Payment was successful, Razorpay handles webhook
+          window.location.href = `/store/success?payment_id=${response.razorpay_payment_id}`;
+        },
+        prefill: {
+          name: currentUser.name || '',
+          email: currentUser.email || '',
+          contact: currentUser.phone || '',
+        },
+        theme: {
+          color: '#8b5cf6', // primary color (purple-500)
+        }
+      };
+
+      const paymentObject = new (window as any).Razorpay(options);
+      paymentObject.on('payment.failed', function (response: any) {
+        alert(`Payment failed: ${response.error.description}`);
+      });
+      paymentObject.open();
     } else if (method === 'UPI') {
       // UPI Logic
       try {
@@ -471,7 +506,7 @@ export default function StorePage() {
                   onClick={() => handlePurchase('ONLINE')}
                   className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
                 >
-                  <span>💳</span> Pay Online (Stripe)
+                  <span>💳</span> Pay Online (Razorpay)
                 </button>
                 <button
                   onClick={() => {
