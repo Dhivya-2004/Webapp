@@ -175,8 +175,14 @@ export default function StorePage() {
         return;
       }
 
+      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+      if (!razorpayKey || razorpayKey === 'rzp_test_dummy') {
+        alert("Payment gateway is not configured! Please add your NEXT_PUBLIC_RAZORPAY_KEY_ID to your .env.local file.");
+        return;
+      }
+
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_dummy',
+        key: razorpayKey,
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'PhysioByHarish',
