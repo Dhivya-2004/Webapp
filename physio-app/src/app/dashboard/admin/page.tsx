@@ -643,7 +643,7 @@ export default function AdminDashboard() {
                         </td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            {(!purchase.status || purchase.status === 'Ordered') && (
+                            {(!purchase.status || purchase.status === 'Ordered' || purchase.status === 'Paid') && (
                               <>
                                 <button
                                   onClick={() => handlePurchaseStatus(purchase.id, 'Delivered')}

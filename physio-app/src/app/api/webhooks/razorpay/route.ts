@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         // Update purchase status in Supabase
         const { error } = await supabase
           .from('purchases')
-          .update({ status: 'Delivered', payment_method: `Razorpay (Txn: ${payment.id})` })
+          .update({ status: 'Paid', payment_method: `Razorpay (Txn: ${payment.id})` })
           .eq('id', purchase_id);
 
         if (error) {
