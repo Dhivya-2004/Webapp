@@ -32,6 +32,12 @@ export default function Home() {
               Purchase Equipment
             </Link>
             <Link
+              href="/nurse-care"
+              className="w-full sm:w-auto px-8 py-4 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 rounded-full font-extrabold text-lg hover-lift shadow-lg border border-blue-200 dark:border-blue-800"
+            >
+              Nurse Care
+            </Link>
+            <Link
               href="https://wa.me/916385842977?text=Hello,%20I%20would%20like%20to%20book%20a%20physiotherapy%20appointment."
               target="_blank"
               rel="noopener noreferrer"
