@@ -118,24 +118,9 @@ export default function RegisterPage() {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedPhoneOtp(otp);
     
-    try {
-      const response = await fetch('/api/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'phone', contact: phone, otp })
-      });
-      
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Failed to send Phone OTP');
-      }
-      
-      setPhoneOtpSent(true);
-      showToast('OTP sent to your phone successfully!', 'success');
-    } catch (error: any) {
-      console.error(error);
-      showToast(`Error: ${error.message || 'sending Phone OTP'}`, 'error');
-    }
+    // Fallback to Mock OTP since Fast2SMS requires payment
+    setPhoneOtpSent(true);
+    showToast(`OTP for Phone sent: ${otp} (Mock)`, 'success');
   };
 
   const handleVerifyPhoneOtp = () => {
