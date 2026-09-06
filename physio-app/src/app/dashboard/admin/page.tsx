@@ -216,6 +216,7 @@ export default function AdminDashboard() {
   const tabs: { id: Tab; label: string; emoji: string }[] = [
     { id: 'overview', label: 'Overview', emoji: '📊' },
     { id: 'doctors', label: `Doctors (${doctors.length})`, emoji: '🩺' },
+    { id: 'nurses', label: `Nurses (${nurses.length})`, emoji: '👩‍⚕️' },
     { id: 'patients', label: `Patients (${patients.length})`, emoji: '🧑‍🦽' },
     { id: 'purchases', label: `Purchases (${purchases.length})`, emoji: '🛒' },
     { id: 'appointments', label: `Appointments (${appointments.length})`, emoji: '📅' },
@@ -289,6 +290,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total Doctors', value: doctors.length, icon: '🩺', color: 'from-blue-500 to-cyan-500', border: 'border-blue-200 dark:border-blue-800' },
+          { label: 'Total Nurses', value: nurses.length, icon: '👩‍⚕️', color: 'from-emerald-400 to-teal-500', border: 'border-emerald-200 dark:border-emerald-800' },
           { label: 'Total Patients', value: patients.length, icon: '🧑‍🦽', color: 'from-violet-500 to-purple-500', border: 'border-violet-200 dark:border-violet-800' },
           { label: 'Appointments', value: appointments.length, icon: '📅', color: 'from-pink-500 to-rose-500', border: 'border-pink-200 dark:border-pink-800' },
           { label: 'Total Purchases', value: purchases.length, icon: '🛒', color: 'from-emerald-500 to-teal-500', border: 'border-emerald-200 dark:border-emerald-800' },
