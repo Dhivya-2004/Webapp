@@ -27,12 +27,20 @@ export default function NurseCarePage() {
             <p className="text-slate-500 mb-8 flex-grow">
               Looking for professional nursing care at home? Book a certified nurse.
             </p>
-            <Link
-              href="/login/patient"
-              className="w-full px-8 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover-lift shadow-lg shadow-primary/20 transition-all"
-            >
-              Patient Login
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+              <Link
+                href="/login/patient"
+                className="w-full px-8 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover-lift shadow-lg shadow-primary/20 transition-all"
+              >
+                Patient Login
+              </Link>
+              <Link
+                href="/register?role=patient"
+                className="w-full px-8 py-4 bg-white dark:bg-slate-800 text-primary border border-primary/20 rounded-xl font-bold text-lg hover-lift shadow-lg transition-all"
+              >
+                Register
+              </Link>
+            </div>
           </div>
 
           {/* Nurse Card */}
