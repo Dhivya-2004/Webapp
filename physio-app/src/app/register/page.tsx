@@ -161,7 +161,7 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (role === 'doctor') {
+    if (role === 'doctor' || role === 'nurse') {
       if (!isEmailVerified) {
         showToast('Please verify your email address before registering.', 'error');
         return;
@@ -197,7 +197,7 @@ export default function RegisterPage() {
     let profileUrl = null;
     let aadharUrl = null;
 
-    if (role === 'doctor') {
+    if (role === 'doctor' || role === 'nurse') {
       degreeUrl = await uploadFile(degreePhoto, 'degree', authData.user.id);
       profileUrl = await uploadFile(profilePhoto, 'profile', authData.user.id);
       aadharUrl = await uploadFile(aadharCard, 'aadhar', authData.user.id);
@@ -214,22 +214,22 @@ export default function RegisterPage() {
           name: newName,
           address,
           phone,
-          qualification: role === 'doctor' ? qualification : null,
-          clinic_name: role === 'doctor' ? clinicName : null,
-          gender: role === 'doctor' ? gender : null,
-          college_name: role === 'doctor' ? collegeName : null,
-          experience: role === 'doctor' ? experience : null,
-          specialization: role === 'doctor' ? specialization : null,
-          previous_employment_title: role === 'doctor' ? prevEmpTitle : null,
-          previous_employment_clinic: role === 'doctor' ? prevEmpClinic : null,
-          service_procedures: role === 'doctor' ? serviceProcedures : null,
-          bls_acls_services: role === 'doctor' ? blsAcls : null,
-          special_equipment: role === 'doctor' ? specialEquipment : null,
-          languages_known: role === 'doctor' ? languages : null,
-          degree_photo_url: role === 'doctor' ? degreeUrl : null,
-          profile_photo_url: role === 'doctor' ? profileUrl : null,
-          aadhar_card_url: role === 'doctor' ? aadharUrl : null,
-          status: role === 'doctor' ? 'pending' : 'approved',
+          qualification: (role === 'doctor' || role === 'nurse') ? qualification : null,
+          clinic_name: (role === 'doctor' || role === 'nurse') ? clinicName : null,
+          gender: (role === 'doctor' || role === 'nurse') ? gender : null,
+          college_name: (role === 'doctor' || role === 'nurse') ? collegeName : null,
+          experience: (role === 'doctor' || role === 'nurse') ? experience : null,
+          specialization: (role === 'doctor' || role === 'nurse') ? specialization : null,
+          previous_employment_title: (role === 'doctor' || role === 'nurse') ? prevEmpTitle : null,
+          previous_employment_clinic: (role === 'doctor' || role === 'nurse') ? prevEmpClinic : null,
+          service_procedures: (role === 'doctor' || role === 'nurse') ? serviceProcedures : null,
+          bls_acls_services: (role === 'doctor' || role === 'nurse') ? blsAcls : null,
+          special_equipment: (role === 'doctor' || role === 'nurse') ? specialEquipment : null,
+          languages_known: (role === 'doctor' || role === 'nurse') ? languages : null,
+          degree_photo_url: (role === 'doctor' || role === 'nurse') ? degreeUrl : null,
+          profile_photo_url: (role === 'doctor' || role === 'nurse') ? profileUrl : null,
+          aadhar_card_url: (role === 'doctor' || role === 'nurse') ? aadharUrl : null,
+          status: (role === 'doctor' || role === 'nurse') ? 'pending' : 'approved',
         }
       ]);
 
@@ -244,7 +244,7 @@ export default function RegisterPage() {
     localStorage.setItem('userRole', role);
     localStorage.setItem('currentUser', JSON.stringify({ id: authData.user.id, email, name: newName, role, address }));
 
-    if (role === 'doctor') {
+    if (role === 'doctor' || role === 'nurse') {
       await supabase.auth.signOut();
       showToast('Registration successful! Please wait for Admin approval to login.', 'success');
     } else {
@@ -254,6 +254,8 @@ export default function RegisterPage() {
     setTimeout(() => {
       if (role === 'doctor') {
         router.push('/login/doctor');
+      } else if (role === 'nurse') {
+        router.push('/login/nurse');
       } else {
         router.push(`/dashboard/${role}`);
       }
@@ -299,6 +301,15 @@ export default function RegisterPage() {
               >
                 Doctor
               </button>
+              <button
+                type="button"
+                onClick={() => setRole('nurse')}
+                className={`py-2 px-8 text-sm font-semibold rounded-lg transition-all ${
+                  role === 'nurse' ? 'bg-white dark:bg-slate-700 shadow-sm text-primary' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Nurse
+              </button>
              </div>
           </div>
 
@@ -315,17 +326,17 @@ export default function RegisterPage() {
               <label className="block text-sm font-medium mb-2">Email address</label>
               <div className="flex flex-col gap-2">
                 <div className="flex gap-2">
-                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)} disabled={isEmailVerified && role === 'doctor'} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none disabled:opacity-50" placeholder="john@example.com" />
-                  {role === 'doctor' && !isEmailVerified && (
+                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)} disabled={isEmailVerified && (role === 'doctor' || role === 'nurse')} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none disabled:opacity-50" placeholder="john@example.com" />
+                  {(role === 'doctor' || role === 'nurse') && !isEmailVerified && (
                     <button type="button" onClick={handleSendEmailOtp} className="px-4 py-3 bg-primary text-white font-semibold rounded-xl whitespace-nowrap hover:bg-primary/90">
                       {emailOtpSent ? 'Resend' : 'Verify'}
                     </button>
                   )}
-                  {role === 'doctor' && isEmailVerified && (
+                  {(role === 'doctor' || role === 'nurse') && isEmailVerified && (
                     <span className="px-4 py-3 bg-green-100 text-green-700 font-semibold rounded-xl flex items-center whitespace-nowrap">✓ Verified</span>
                   )}
                 </div>
-                {role === 'doctor' && emailOtpSent && !isEmailVerified && (
+                {(role === 'doctor' || role === 'nurse') && emailOtpSent && !isEmailVerified && (
                   <div className="flex gap-2 mt-2">
                     <input type="text" value={emailOtp} onChange={e => setEmailOtp(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none" placeholder="Enter OTP" />
                     <button type="button" onClick={handleVerifyEmailOtp} className="px-4 py-3 bg-green-600 text-white font-semibold rounded-xl whitespace-nowrap hover:bg-green-700">
@@ -339,17 +350,17 @@ export default function RegisterPage() {
               <label className="block text-sm font-medium mb-2">Phone Number</label>
               <div className="flex flex-col gap-2">
                 <div className="flex gap-2">
-                  <input type="tel" required value={phone} onChange={e => setPhone(e.target.value)} disabled={isPhoneVerified && role === 'doctor'} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none disabled:opacity-50" placeholder="+91 9876543210" />
-                  {role === 'doctor' && !isPhoneVerified && (
+                  <input type="tel" required value={phone} onChange={e => setPhone(e.target.value)} disabled={isPhoneVerified && (role === 'doctor' || role === 'nurse')} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none disabled:opacity-50" placeholder="+91 9876543210" />
+                  {(role === 'doctor' || role === 'nurse') && !isPhoneVerified && (
                     <button type="button" onClick={handleSendPhoneOtp} className="px-4 py-3 bg-primary text-white font-semibold rounded-xl whitespace-nowrap hover:bg-primary/90">
                       {phoneOtpSent ? 'Resend' : 'Verify'}
                     </button>
                   )}
-                  {role === 'doctor' && isPhoneVerified && (
+                  {(role === 'doctor' || role === 'nurse') && isPhoneVerified && (
                     <span className="px-4 py-3 bg-green-100 text-green-700 font-semibold rounded-xl flex items-center whitespace-nowrap">✓ Verified</span>
                   )}
                 </div>
-                {role === 'doctor' && phoneOtpSent && !isPhoneVerified && (
+                {(role === 'doctor' || role === 'nurse') && phoneOtpSent && !isPhoneVerified && (
                   <div className="flex gap-2 mt-2">
                     <input type="text" value={phoneOtp} onChange={e => setPhoneOtp(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none" placeholder="Enter OTP" />
                     <button type="button" onClick={handleVerifyPhoneOtp} className="px-4 py-3 bg-green-600 text-white font-semibold rounded-xl whitespace-nowrap hover:bg-green-700">
@@ -371,8 +382,8 @@ export default function RegisterPage() {
             <textarea required value={address} onChange={e => setAddress(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none" placeholder="123 Main St, City" rows={2}></textarea>
           </div>
 
-          {/* DOCTOR SPECIFIC FIELDS */}
-          {role === 'doctor' && (
+          {/* DOCTOR & NURSE SPECIFIC FIELDS */}
+          {(role === 'doctor' || role === 'nurse') && (
             <div className="space-y-8 mt-8 pt-8 border-t border-slate-200 dark:border-slate-700">
               <h2 className="text-xl font-bold text-primary">Professional Details</h2>
               

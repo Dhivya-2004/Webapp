@@ -7,7 +7,7 @@ type RegisteredUser = {
   id: string;
   name: string;
   email: string;
-  role: 'patient' | 'doctor';
+  role: 'patient' | 'doctor' | 'nurse';
   qualification?: string;
   clinic_name?: string;
   address?: string;
@@ -53,7 +53,7 @@ type Appointment = {
   bookedAt: string;
 };
 
-type Tab = 'overview' | 'doctors' | 'patients' | 'purchases' | 'appointments';
+type Tab = 'overview' | 'doctors' | 'nurses' | 'patients' | 'purchases' | 'appointments';
 
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -129,6 +129,7 @@ export default function AdminDashboard() {
   };
 
   const doctors = registeredUsers.filter((u) => u.role === 'doctor');
+  const nurses = registeredUsers.filter((u) => u.role === 'nurse');
   const patients = registeredUsers.filter((u) => u.role === 'patient');
   const totalRevenue = purchases.reduce((sum, p) => (p.status?.startsWith('Cancelled') ? sum : sum + p.price), 0);
 
@@ -141,24 +142,24 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDoctorStatus = async (doctorId: string, newStatus: 'approved' | 'rejected') => {
+  const handleProviderStatus = async (providerId: string, newStatus: 'approved' | 'rejected') => {
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ status: newStatus })
-        .eq('id', doctorId);
+        .eq('id', providerId);
 
       if (error) {
-        console.error('Error updating doctor status:', error);
+        console.error('Error updating status:', error);
         return;
       }
 
       // Update local state
-      setRegisteredUsers(registeredUsers.map(doc => doc.id === doctorId ? { ...doc, status: newStatus } : doc));
+      setRegisteredUsers(registeredUsers.map(user => user.id === providerId ? { ...user, status: newStatus } : user));
       
-      // Send email notification to doctor
-      const doctor = registeredUsers.find(d => d.id === doctorId);
-      if (doctor && doctor.email) {
+      // Send email notification
+      const provider = registeredUsers.find(u => u.id === providerId);
+      if (provider && provider.email) {
         try {
           await fetch('/api/send-email', {
             method: 'POST',
@@ -166,9 +167,9 @@ export default function AdminDashboard() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              name: doctor.name,
-              email: doctor.email,
-              userId: doctor.id,
+              name: provider.name,
+              email: provider.email,
+              userId: provider.id,
               emailType: newStatus
             }),
           });
@@ -178,7 +179,7 @@ export default function AdminDashboard() {
       }
 
     } catch (err) {
-      console.error('Exception updating doctor status:', err);
+      console.error('Exception updating status:', err);
     }
   };
 
@@ -434,7 +435,7 @@ export default function AdminDashboard() {
                              </button>
                             {(doc.status === 'pending') && (
                               <button
-                                onClick={() => handleDoctorStatus(doc.id, 'approved')}
+                                onClick={() => handleProviderStatus(doc.id, 'approved')}
                                 className="text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1.5 rounded-full hover:bg-green-100"
                               >
                                 Approve
@@ -492,6 +493,138 @@ export default function AdminDashboard() {
                                     </a>
                                   )}
                                   {!doc.profile_photo_url && !doc.degree_photo_url && !doc.aadhar_card_url && (
+                                    <p className="text-slate-500 text-sm">No documents uploaded.</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+        )}
+
+        {/* Nurses Tab */}
+        {activeTab === 'nurses' && (
+          <div className="p-6">
+            <h2 className="text-lg font-bold mb-4">Registered Nurses</h2>
+            {nurses.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="text-5xl mb-4">👩‍⚕️</div>
+                <p className="text-slate-500 font-medium">No nurses registered yet</p>
+                <p className="text-sm text-slate-400 mt-1">Nurses will appear here after they register</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="text-left text-sm text-slate-500 border-b border-gray-100 dark:border-slate-700/50">
+                      <th className="pb-3 font-semibold">Name</th>
+                      <th className="pb-3 font-semibold">Qualification</th>
+                      <th className="pb-3 font-semibold">Experience</th>
+                      <th className="pb-3 font-semibold">Email</th>
+                      <th className="pb-3 font-semibold">Registered</th>
+                      <th className="pb-3 font-semibold">Status</th>
+                      <th className="pb-3 font-semibold text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {nurses.map((nurse) => (
+                      <React.Fragment key={nurse.id}>
+                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                        <td className="py-3">
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-foreground">{nurse.name || '—'}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 text-slate-500">{nurse.qualification || '—'}</td>
+                        <td className="py-3 text-slate-500">{nurse.experience || '—'}</td>
+                        <td className="py-3 text-slate-500">{nurse.email}</td>
+                        <td className="py-3 text-slate-400 text-xs">
+                          {nurse.registeredAt ? new Date(nurse.registeredAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                        </td>
+                        <td className="py-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            nurse.status === 'approved' 
+                              ? 'bg-green-100 text-green-700' 
+                              : nurse.status === 'rejected'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {nurse.status ? nurse.status.charAt(0).toUpperCase() + nurse.status.slice(1) : 'Approved'}
+                          </span>
+                        </td>
+                        <td className="py-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                               onClick={() => setExpandedDocId(expandedDocId === nurse.id ? null : nurse.id)}
+                               className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
+                             >
+                               {expandedDocId === nurse.id ? 'Hide' : 'Details'}
+                             </button>
+                            {(nurse.status === 'pending') && (
+                              <button
+                                onClick={() => handleProviderStatus(nurse.id, 'approved')}
+                                className="text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1.5 rounded-full hover:bg-green-100"
+                              >
+                                Approve
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleRemoveUser(nurse.id)}
+                              className="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 dark:bg-red-900/20 px-2.5 py-1.5 rounded-full transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {expandedDocId === nurse.id && (
+                        <tr key={`${nurse.id}-expanded`}>
+                          <td colSpan={7} className="px-4 py-6 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                              <div>
+                                <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-2 border-b pb-1">Personal Info</h4>
+                                <p><span className="font-semibold text-slate-500">Gender:</span> {nurse.gender || 'N/A'}</p>
+                                <p><span className="font-semibold text-slate-500">Phone:</span> {nurse.phone || 'N/A'}</p>
+                                <p><span className="font-semibold text-slate-500">Address:</span> {nurse.address || 'N/A'}</p>
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-2 border-b pb-1">Professional Background</h4>
+                                <p><span className="font-semibold text-slate-500">College:</span> {nurse.college_name || 'N/A'}</p>
+                                <p><span className="font-semibold text-slate-500">Experience:</span> {nurse.experience || 'N/A'}</p>
+                                <p><span className="font-semibold text-slate-500">Specialization:</span> {nurse.specialization || 'N/A'}</p>
+                                <p><span className="font-semibold text-slate-500">Previous Employment:</span> {nurse.previous_employment_title ? `${nurse.previous_employment_title} at ${nurse.previous_employment_clinic}` : 'N/A'}</p>
+                              </div>
+                              <div className="md:col-span-2">
+                                <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-2 border-b pb-1">Services & Capabilities</h4>
+                                <p><span className="font-semibold text-slate-500">Procedures:</span> {nurse.service_procedures?.join(', ') || 'N/A'}</p>
+                                <p><span className="font-semibold text-slate-500">Languages:</span> {nurse.languages_known?.join(', ') || 'N/A'}</p>
+                              </div>
+                              <div className="md:col-span-2">
+                                <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-3 border-b pb-1">Uploaded Documents</h4>
+                                <div className="flex gap-4">
+                                  {nurse.profile_photo_url && (
+                                    <a href={nurse.profile_photo_url} target="_blank" rel="noreferrer" className="flex flex-col items-center p-3 border rounded-lg hover:bg-slate-100 transition-colors text-xs font-semibold">
+                                      📸 Profile Photo
+                                    </a>
+                                  )}
+                                  {nurse.degree_photo_url && (
+                                    <a href={nurse.degree_photo_url} target="_blank" rel="noreferrer" className="flex flex-col items-center p-3 border rounded-lg hover:bg-slate-100 transition-colors text-xs font-semibold">
+                                      🎓 Degree
+                                    </a>
+                                  )}
+                                  {nurse.aadhar_card_url && (
+                                    <a href={nurse.aadhar_card_url} target="_blank" rel="noreferrer" className="flex flex-col items-center p-3 border rounded-lg hover:bg-slate-100 transition-colors text-xs font-semibold">
+                                      🪪 Aadhar Card
+                                    </a>
+                                  )}
+                                  {!nurse.profile_photo_url && !nurse.degree_photo_url && !nurse.aadhar_card_url && (
                                     <p className="text-slate-500 text-sm">No documents uploaded.</p>
                                   )}
                                 </div>

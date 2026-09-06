@@ -7,7 +7,7 @@ drop table if exists public.profiles;
 create table public.profiles (
   id uuid references auth.users not null primary key,
   email text,
-  role text check (role in ('patient', 'doctor', 'admin')),
+  role text check (role in ('patient', 'doctor', 'admin', 'nurse')),
   name text,
 
   qualification text,

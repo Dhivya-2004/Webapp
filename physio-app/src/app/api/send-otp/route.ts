@@ -75,49 +75,6 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ success: true, message: 'SMS sent successfully' });
     }
-    
-    else if (type === 'whatsapp') {
-      // Send WhatsApp via Twilio
-      const accountSid = process.env.TWILIO_ACCOUNT_SID;
-      const authToken = process.env.TWILIO_AUTH_TOKEN;
-      const twilioNumber = process.env.TWILIO_WHATSAPP_NUMBER;
-      
-      if (!accountSid || !authToken || !twilioNumber) {
-        return NextResponse.json({ error: 'Twilio WhatsApp API keys not configured' }, { status: 500 });
-      }
-
-      // Ensure number has country code. Default to +91 for India if not provided.
-      let formattedNumber = contact.replace(/\D/g, '');
-      if (formattedNumber.length === 10) {
-        formattedNumber = '91' + formattedNumber;
-      }
-      
-      // Basic Twilio API Request (No Twilio SDK required to keep it lightweight)
-      const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-      const body = new URLSearchParams({
-        To: `whatsapp:+${formattedNumber}`,
-        From: `whatsapp:${twilioNumber}`,
-        Body: `*PhysioByHarish*\n\nYour Doctor Registration OTP is: *${otp}*\n\nPlease enter this on the registration page.`
-      });
-
-      const response = await fetch(twilioUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64'),
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: body.toString()
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error('Twilio WhatsApp Error:', data);
-        return NextResponse.json({ error: data.message || 'Failed to send WhatsApp message' }, { status: 500 });
-      }
-
-      return NextResponse.json({ success: true, message: 'WhatsApp OTP sent successfully' });
-    }
 
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
   } catch (error: any) {
