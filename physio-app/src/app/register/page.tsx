@@ -382,10 +382,10 @@ export default function RegisterPage() {
             <textarea required value={address} onChange={e => setAddress(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none" placeholder="123 Main St, City" rows={2}></textarea>
           </div>
 
-          {/* DOCTOR & NURSE SPECIFIC FIELDS */}
-          {(role === 'doctor' || role === 'nurse') && (
+          {/* DOCTOR SPECIFIC FIELDS */}
+          {role === 'doctor' && (
             <div className="space-y-8 mt-8 pt-8 border-t border-slate-200 dark:border-slate-700">
-              <h2 className="text-xl font-bold text-primary">Professional Details</h2>
+              <h2 className="text-xl font-bold text-primary">Doctor Professional Details</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -506,6 +506,78 @@ export default function RegisterPage() {
               <p className="text-xs text-red-500 text-center font-semibold">
                 * Note: File uploads require the "doctor-documents" bucket to be created in Supabase Storage!
               </p>
+            </div>
+          )}
+
+          {/* NURSE SPECIFIC FIELDS */}
+          {role === 'nurse' && (
+            <div className="space-y-8 mt-8 pt-8 border-t border-slate-200 dark:border-slate-700">
+              <h2 className="text-xl font-bold text-emerald-600">Nurse Professional Details</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Gender</label>
+                  <select value={gender} onChange={e => setGender(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700">
+                    {GENDER_LIST.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Experience</label>
+                  <select value={experience} onChange={e => setExperience(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700">
+                    {EXPERIENCE_LIST.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Qualification</label>
+                  <input type="text" required value={qualification} onChange={e => setQualification(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-emerald-500" placeholder="B.Sc Nursing, GNM" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">College Name</label>
+                  <input type="text" required value={collegeName} onChange={e => setCollegeName(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Nursing College Name" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Specialization</label>
+                  <input type="text" required value={specialization} onChange={e => setSpecialization(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-emerald-500" placeholder="ICU, Pediatric, General Ward" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Current Hospital / Clinic Name</label>
+                  <input type="text" value={clinicName} onChange={e => setClinicName(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-emerald-500" placeholder="City Care Hospital" />
+                </div>
+              </div>
+
+              {/* Languages */}
+              <div>
+                <label className="block text-sm font-medium mb-3">Languages Known</label>
+                <div className="flex flex-wrap gap-4">
+                  {LANGUAGES_LIST.map(lang => (
+                    <label key={lang} className="flex items-center space-x-2 text-sm">
+                      <input 
+                        type="checkbox" 
+                        checked={languages.includes(lang)}
+                        onChange={() => toggleArrayItem(lang, languages, setLanguages)}
+                        className="rounded text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span>{lang}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* File Uploads */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
+                <div className="p-4 border rounded-xl dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/50">
+                  <label className="block text-sm font-medium mb-3">Profile Photo *</label>
+                  <input type="file" required accept="image/*" onChange={e => setProfilePhoto(e.target.files?.[0] || null)} className="w-full text-sm" />
+                </div>
+                <div className="p-4 border rounded-xl dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/50">
+                  <label className="block text-sm font-medium mb-3">Degree/Diploma Certificate *</label>
+                  <input type="file" required accept="image/*,.pdf" onChange={e => setDegreePhoto(e.target.files?.[0] || null)} className="w-full text-sm" />
+                </div>
+                <div className="p-4 border rounded-xl dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/50">
+                  <label className="block text-sm font-medium mb-3">Aadhar Card *</label>
+                  <input type="file" required accept="image/*,.pdf" onChange={e => setAadharCard(e.target.files?.[0] || null)} className="w-full text-sm" />
+                </div>
+              </div>
             </div>
           )}
 
