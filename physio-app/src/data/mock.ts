@@ -40,7 +40,7 @@ export const mockProducts: Product[] = [
   { id: 'p3',  name: 'Tennis elbow splint',             price: 229,  image: 'https://jsbhealthcare.co.in/cdn/shop/files/Tennis_Elbow_Support_Brace_for_Golfers_JSB_BS65_medium.jpg?v=1752994142', sizes: ['Normal'] },
   { id: 'p4',  name: 'Immobilizer pouch elbow',         price: 349,  image: 'https://cdn01.pharmeasy.in/dam/products_otc/M80125/besafe-forever-half-arm-sling-pouch-belt-arm-brace-immobilizer-grey-2-1767673500.jpg', sizes: ['S', 'M', 'L'] },
   { id: 'p5',  name: 'Thumbs spica',                    price: 199,  image: 'https://images.apollo247.in/pub/media/catalog/product/T/H/THU0023_5-AUG23_1.jpg?tr=q-80,f-webp,w-400,dpr-3,c-at_max 400w', sizes: ['Normal'] },
-  { id: 'p6',  name: 'Buddy splint',                    price: 129,  image: '/images/buddy-splint.png', sizes: ['Normal'] },
+  { id: 'p6',  name: 'Buddy splint',                    price: 129,  image: '/buddy-splint.png', sizes: ['Normal'] },
   { id: 'p7',  name: 'Cock up splint',                  price: 299,  image: 'https://cdn01.pharmeasy.in/dam/products_otc/P99688/vissco-dynamic-cock-up-splint-with-finger-extension-left-1-1641790492.jpg', sizes: ['S', 'M', 'L'] },
   { id: 'p8',  name: 'Wrist extensor',                  price: 399,  image: 'https://www.ipsprosthetics.com/wp-content/uploads/2021/11/image-20211104-164956-bc465411-scaled.jpeg', sizes: ['S', 'M', 'L'] },
   { id: 'p9',  name: 'Foot wear silicon gel',           price: 449,  image: 'https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/a7d8a992bca444aa99e4e5df76a9b1ad.jpg?dpr=3&format=auto&w=412', sizes: ['5', '6', '7', '8', '9', '10'] },
