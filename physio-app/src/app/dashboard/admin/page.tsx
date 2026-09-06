@@ -507,8 +507,8 @@ export default function AdminDashboard() {
                 </table>
               </div>
             )}
+          </div>
         )}
-
         {/* Nurses Tab */}
         {activeTab === 'nurses' && (
           <div className="p-6">
