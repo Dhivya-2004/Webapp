@@ -483,11 +483,11 @@ export default function AdminDashboard() {
                                       📸 Profile Photo
                                     </a>
                                   )}
-                                  {doc.degree_photo_url && (
-                                    <a href={doc.degree_photo_url} target="_blank" rel="noreferrer" className="flex flex-col items-center p-3 border rounded-lg hover:bg-slate-100 transition-colors text-xs font-semibold">
-                                      🎓 Degree
+                                  {doc.degree_photo_url && doc.degree_photo_url.split(',').map((url, i) => (
+                                    <a key={i} href={url} target="_blank" rel="noreferrer" className="flex flex-col items-center p-3 border rounded-lg hover:bg-slate-100 transition-colors text-xs font-semibold">
+                                      {i === 0 ? '🎓 College ID / Degree' : '📄 Marksheet'}
                                     </a>
-                                  )}
+                                  ))}
                                   {doc.aadhar_card_url && (
                                     <a href={doc.aadhar_card_url} target="_blank" rel="noreferrer" className="flex flex-col items-center p-3 border rounded-lg hover:bg-slate-100 transition-colors text-xs font-semibold">
                                       🪪 Aadhar Card
@@ -615,11 +615,11 @@ export default function AdminDashboard() {
                                       📸 Profile Photo
                                     </a>
                                   )}
-                                  {nurse.degree_photo_url && (
-                                    <a href={nurse.degree_photo_url} target="_blank" rel="noreferrer" className="flex flex-col items-center p-3 border rounded-lg hover:bg-slate-100 transition-colors text-xs font-semibold">
-                                      🎓 Degree
+                                  {nurse.degree_photo_url && nurse.degree_photo_url.split(',').map((url, i) => (
+                                    <a key={i} href={url} target="_blank" rel="noreferrer" className="flex flex-col items-center p-3 border rounded-lg hover:bg-slate-100 transition-colors text-xs font-semibold">
+                                      {i === 0 ? '🎓 College ID / Degree' : '📄 Marksheet'}
                                     </a>
-                                  )}
+                                  ))}
                                   {nurse.aadhar_card_url && (
                                     <a href={nurse.aadhar_card_url} target="_blank" rel="noreferrer" className="flex flex-col items-center p-3 border rounded-lg hover:bg-slate-100 transition-colors text-xs font-semibold">
                                       🪪 Aadhar Card

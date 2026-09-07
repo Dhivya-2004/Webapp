@@ -21,6 +21,7 @@ const LANGUAGES_LIST = ["Tamil", "English", "Malayalam", "Telugu", "Hindi", "Kan
 const EXPERIENCE_LIST = ["less than 6 months", "1 year", "2 years", "3 years", "More than 3 years"];
 const GENDER_LIST = ["Male", "Female", "Other"];
 const PROFESSIONAL_STATUS_LIST = ["Intern", "Student", "Graduated"];
+const STUDENT_YEAR_LIST = ["1st Year", "2nd Year", "3rd Year", "4th Year", "Final Year"];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -37,6 +38,7 @@ export default function RegisterPage() {
   // Doctor / Nurse Specific Info
   const [gender, setGender] = useState('Male');
   const [professionalStatus, setProfessionalStatus] = useState('Graduated');
+  const [studentYear, setStudentYear] = useState('1st Year');
   const [qualification, setQualification] = useState('');
   const [collegeName, setCollegeName] = useState('');
   const [clinicName, setClinicName] = useState('');
@@ -64,6 +66,7 @@ export default function RegisterPage() {
 
   // Files
   const [degreePhoto, setDegreePhoto] = useState<File | null>(null);
+  const [marksheetPhoto, setMarksheetPhoto] = useState<File | null>(null);
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [aadharCard, setAadharCard] = useState<File | null>(null);
 
@@ -196,14 +199,21 @@ export default function RegisterPage() {
 
     const newName = `${firstName} ${lastName}`.trim();
     let degreeUrl = null;
+    let marksheetUrl = null;
     let profileUrl = null;
     let aadharUrl = null;
 
     if (role === 'doctor' || role === 'nurse') {
       degreeUrl = await uploadFile(degreePhoto, 'degree', authData.user.id);
+      if (professionalStatus !== 'Graduated' && marksheetPhoto) {
+        marksheetUrl = await uploadFile(marksheetPhoto, 'marksheet', authData.user.id);
+        degreeUrl = `${degreeUrl},${marksheetUrl}`;
+      }
       profileUrl = await uploadFile(profilePhoto, 'profile', authData.user.id);
       aadharUrl = await uploadFile(aadharCard, 'aadhar', authData.user.id);
     }
+    
+    const finalStatus = professionalStatus === 'Student' ? `Student - ${studentYear}` : professionalStatus;
 
     // 2. Insert into profiles table
     const { error: profileError } = await supabase
@@ -216,7 +226,7 @@ export default function RegisterPage() {
           name: newName,
           address,
           phone,
-          qualification: (role === 'doctor' || role === 'nurse') ? `${qualification} (${professionalStatus})` : null,
+          qualification: (role === 'doctor' || role === 'nurse') ? `${qualification} (${finalStatus})` : null,
           clinic_name: (role === 'doctor' || role === 'nurse') ? clinicName : null,
           gender: (role === 'doctor' || role === 'nurse') ? gender : null,
           college_name: (role === 'doctor' || role === 'nurse') ? collegeName : null,
@@ -402,6 +412,14 @@ export default function RegisterPage() {
                     {PROFESSIONAL_STATUS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
+                {professionalStatus === 'Student' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Year of Study</label>
+                    <select value={studentYear} onChange={e => setStudentYear(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700">
+                      {STUDENT_YEAR_LIST.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium mb-2">Experience</label>
                   <select value={experience} onChange={e => setExperience(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700">
@@ -508,6 +526,12 @@ export default function RegisterPage() {
                   </label>
                   <input type="file" required accept="image/*,.pdf" onChange={e => setDegreePhoto(e.target.files?.[0] || null)} className="w-full text-sm" />
                 </div>
+                {professionalStatus !== 'Graduated' && (
+                  <div className="p-4 border rounded-xl dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/50">
+                    <label className="block text-sm font-medium mb-3">Last Semester Marksheet *</label>
+                    <input type="file" required accept="image/*,.pdf" onChange={e => setMarksheetPhoto(e.target.files?.[0] || null)} className="w-full text-sm" />
+                  </div>
+                )}
                 <div className="p-4 border rounded-xl dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/50">
                   <label className="block text-sm font-medium mb-3">Aadhar Card *</label>
                   <input type="file" required accept="image/*,.pdf" onChange={e => setAadharCard(e.target.files?.[0] || null)} className="w-full text-sm" />
@@ -537,6 +561,14 @@ export default function RegisterPage() {
                     {PROFESSIONAL_STATUS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
+                {professionalStatus === 'Student' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Year of Study</label>
+                    <select value={studentYear} onChange={e => setStudentYear(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700">
+                      {STUDENT_YEAR_LIST.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium mb-2">Experience</label>
                   <select value={experience} onChange={e => setExperience(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700">
@@ -591,6 +623,12 @@ export default function RegisterPage() {
                   </label>
                   <input type="file" required accept="image/*,.pdf" onChange={e => setDegreePhoto(e.target.files?.[0] || null)} className="w-full text-sm" />
                 </div>
+                {professionalStatus !== 'Graduated' && (
+                  <div className="p-4 border rounded-xl dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/50">
+                    <label className="block text-sm font-medium mb-3">Last Semester Marksheet *</label>
+                    <input type="file" required accept="image/*,.pdf" onChange={e => setMarksheetPhoto(e.target.files?.[0] || null)} className="w-full text-sm" />
+                  </div>
+                )}
                 <div className="p-4 border rounded-xl dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/50">
                   <label className="block text-sm font-medium mb-3">Aadhar Card *</label>
                   <input type="file" required accept="image/*,.pdf" onChange={e => setAadharCard(e.target.files?.[0] || null)} className="w-full text-sm" />
