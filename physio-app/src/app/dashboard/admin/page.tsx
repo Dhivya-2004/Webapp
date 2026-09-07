@@ -86,25 +86,25 @@ export default function AdminDashboard() {
 
       const { data: purs } = await supabase.from('purchases').select(`
         *,
-        user:profiles!purchases_user_id_fkey(name, email)
+        profiles (name, email)
       `).order('created_at', { ascending: false });
       if (purs) {
-        setPurchases(purs.map(p => ({
+        setPurchases(purs.map((p: any) => ({
           ...p,
           productName: p.product_name,
           purchasedAt: p.created_at,
-          patientName: p.user?.name || 'Unknown',
-          patientEmail: p.user?.email || 'Unknown'
+          patientName: p.profiles?.name || 'Unknown',
+          patientEmail: p.profiles?.email || 'Unknown'
         })));
       }
 
       const { data: apts } = await supabase.from('appointments').select(`
         *,
-        patient:profiles!appointments_patient_id_fkey(name, email),
-        doctor:profiles!appointments_doctor_id_fkey(name, specialization)
+        patient:profiles!patient_id (name, email),
+        doctor:profiles!doctor_id (name, specialization)
       `).order('created_at', { ascending: false });
       if (apts) {
-        setAppointments(apts.map(a => ({
+        setAppointments(apts.map((a: any) => ({
           ...a,
           bookedAt: a.created_at,
           patientName: a.patient?.name || 'Unknown',
@@ -191,9 +191,18 @@ export default function AdminDashboard() {
   };
 
   const handlePurchaseStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from('purchases').update({ status }).eq('id', id);
+    let finalStatus = status;
+    if (status === 'Shipped') {
+      const tracking = prompt('Enter Tracking Number or Link (Optional):');
+      if (tracking) finalStatus = `Shipped|${tracking}`;
+    } else if (status === 'Cancelled') {
+      const reason = prompt('Reason for cancellation (Optional):');
+      if (reason) finalStatus = `Cancelled|${reason}`;
+    }
+
+    const { error } = await supabase.from('purchases').update({ status: finalStatus }).eq('id', id);
     if (!error) {
-      setPurchases(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+      setPurchases(prev => prev.map(p => p.id === id ? { ...p, status: finalStatus } : p));
     }
   };
 
@@ -744,12 +753,19 @@ export default function AdminDashboard() {
                           <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                             purchase.status === 'Delivered'
                               ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                              : purchase.status?.startsWith('Shipped')
+                              ? 'bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400'
                               : purchase.status?.startsWith('Cancelled')
                               ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
                               : 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
                           }`}>
-                            {purchase.status?.startsWith('Cancelled') ? 'Cancelled' : (purchase.status || 'Ordered')}
+                            {purchase.status?.startsWith('Cancelled') ? 'Cancelled' : (purchase.status?.split('|')[0] || 'Ordered')}
                           </span>
+                          {purchase.status?.startsWith('Shipped|') && (
+                            <a href={purchase.status.split('|')[1].startsWith('http') ? purchase.status.split('|')[1] : `https://google.com/search?q=${purchase.status.split('|')[1]}`} target="_blank" rel="noreferrer" className="text-[10px] text-purple-600 font-bold mt-1 ml-1 block hover:underline">
+                              Track: {purchase.status.split('|')[1].length > 15 ? 'Link' : purchase.status.split('|')[1]}
+                            </a>
+                          )}
                           {purchase.status?.startsWith('Cancelled|') && (
                             <p className="text-[10px] text-red-500 font-medium mt-1 ml-1 truncate max-w-[150px]" title={purchase.status.split('|')[1]}>
                               Reason: {purchase.status.split('|')[1]}
@@ -780,10 +796,10 @@ export default function AdminDashboard() {
                             {(!purchase.status || purchase.status === 'Ordered' || purchase.status === 'Paid') && (
                               <>
                                 <button
-                                  onClick={() => handlePurchaseStatus(purchase.id, 'Delivered')}
-                                  className="text-xs font-bold text-green-600 bg-green-50 dark:bg-green-900/20 px-2.5 py-1.5 rounded-full hover:bg-green-100 transition-colors"
+                                  onClick={() => handlePurchaseStatus(purchase.id, 'Shipped')}
+                                  className="text-xs font-bold text-purple-600 bg-purple-50 dark:bg-purple-900/20 px-2.5 py-1.5 rounded-full hover:bg-purple-100 transition-colors"
                                 >
-                                  Delivered
+                                  Mark Shipped
                                 </button>
                                 <button
                                   onClick={() => handlePurchaseStatus(purchase.id, 'Cancelled')}
@@ -792,6 +808,14 @@ export default function AdminDashboard() {
                                   Cancel
                                 </button>
                               </>
+                            )}
+                            {purchase.status?.startsWith('Shipped') && (
+                                <button
+                                  onClick={() => handlePurchaseStatus(purchase.id, 'Delivered')}
+                                  className="text-xs font-bold text-green-600 bg-green-50 dark:bg-green-900/20 px-2.5 py-1.5 rounded-full hover:bg-green-100 transition-colors"
+                                >
+                                  Mark Delivered
+                                </button>
                             )}
                             <button
                               onClick={() => handleRemovePurchase(purchase.id)}
