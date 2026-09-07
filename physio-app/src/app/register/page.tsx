@@ -20,6 +20,7 @@ const EQUIPMENT_LIST = ["Portable TENS Unit", "Exercise bands", "Ultrasound ther
 const LANGUAGES_LIST = ["Tamil", "English", "Malayalam", "Telugu", "Hindi", "Kannada"];
 const EXPERIENCE_LIST = ["less than 6 months", "1 year", "2 years", "3 years", "More than 3 years"];
 const GENDER_LIST = ["Male", "Female", "Other"];
+const PROFESSIONAL_STATUS_LIST = ["Intern", "Student", "Graduated"];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -33,8 +34,9 @@ export default function RegisterPage() {
   const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
   
-  // Doctor Specific Info
+  // Doctor / Nurse Specific Info
   const [gender, setGender] = useState('Male');
+  const [professionalStatus, setProfessionalStatus] = useState('Graduated');
   const [qualification, setQualification] = useState('');
   const [collegeName, setCollegeName] = useState('');
   const [clinicName, setClinicName] = useState('');
@@ -214,7 +216,7 @@ export default function RegisterPage() {
           name: newName,
           address,
           phone,
-          qualification: (role === 'doctor' || role === 'nurse') ? qualification : null,
+          qualification: (role === 'doctor' || role === 'nurse') ? `${qualification} (${professionalStatus})` : null,
           clinic_name: (role === 'doctor' || role === 'nurse') ? clinicName : null,
           gender: (role === 'doctor' || role === 'nurse') ? gender : null,
           college_name: (role === 'doctor' || role === 'nurse') ? collegeName : null,
@@ -395,6 +397,12 @@ export default function RegisterPage() {
                   </select>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium mb-2">Status</label>
+                  <select value={professionalStatus} onChange={e => setProfessionalStatus(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700">
+                    {PROFESSIONAL_STATUS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
                   <label className="block text-sm font-medium mb-2">Experience</label>
                   <select value={experience} onChange={e => setExperience(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700">
                     {EXPERIENCE_LIST.map(g => <option key={g} value={g}>{g}</option>)}
@@ -495,7 +503,9 @@ export default function RegisterPage() {
                   <input type="file" required accept="image/*" onChange={e => setProfilePhoto(e.target.files?.[0] || null)} className="w-full text-sm" />
                 </div>
                 <div className="p-4 border rounded-xl dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/50">
-                  <label className="block text-sm font-medium mb-3">Degree Photo *</label>
+                  <label className="block text-sm font-medium mb-3">
+                    {professionalStatus === 'Graduated' ? 'Degree Certificate *' : 'College ID Card *'}
+                  </label>
                   <input type="file" required accept="image/*,.pdf" onChange={e => setDegreePhoto(e.target.files?.[0] || null)} className="w-full text-sm" />
                 </div>
                 <div className="p-4 border rounded-xl dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/50">
@@ -519,6 +529,12 @@ export default function RegisterPage() {
                   <label className="block text-sm font-medium mb-2">Gender</label>
                   <select value={gender} onChange={e => setGender(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700">
                     {GENDER_LIST.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Status</label>
+                  <select value={professionalStatus} onChange={e => setProfessionalStatus(e.target.value)} className="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-800 dark:border-slate-700">
+                    {PROFESSIONAL_STATUS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
@@ -570,7 +586,9 @@ export default function RegisterPage() {
                   <input type="file" required accept="image/*" onChange={e => setProfilePhoto(e.target.files?.[0] || null)} className="w-full text-sm" />
                 </div>
                 <div className="p-4 border rounded-xl dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/50">
-                  <label className="block text-sm font-medium mb-3">Degree/Diploma Certificate *</label>
+                  <label className="block text-sm font-medium mb-3">
+                    {professionalStatus === 'Graduated' ? 'Degree/Diploma Certificate *' : 'College ID Card *'}
+                  </label>
                   <input type="file" required accept="image/*,.pdf" onChange={e => setDegreePhoto(e.target.files?.[0] || null)} className="w-full text-sm" />
                 </div>
                 <div className="p-4 border rounded-xl dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/50">
