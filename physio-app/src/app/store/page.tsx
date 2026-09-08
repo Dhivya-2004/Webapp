@@ -445,14 +445,23 @@ export default function StorePage() {
             {showUpiPayment ? (
               <div className="flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 text-center border border-slate-200 dark:border-slate-700">
-                  <p className="text-sm font-semibold mb-2 text-foreground">Scan & Pay using any UPI app</p>
+                  <p className="text-sm font-semibold mb-3 text-foreground">Tap to open App (Mobile)</p>
                   
-                  {/* Fake QR Code box for visual feedback */}
-                  <div className="w-32 h-32 mx-auto bg-white border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl flex items-center justify-center p-2 mb-3">
-                    <div className="text-center">
-                      <span className="text-3xl">📱</span>
-                      <p className="text-[10px] text-slate-400 font-medium mt-1">QR CODE</p>
-                    </div>
+                  <div className="flex gap-2 justify-center mb-4 px-2">
+                    <a href={`gpay://upi/pay?pa=divyamsk21@okaxis&pn=PhysioByHarish&am=${selectedProduct.price}&cu=INR`} className="flex-1 py-2 px-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center justify-center transition-colors">
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">GPay</span>
+                    </a>
+                    <a href={`phonepe://pay?pa=divyamsk21@okaxis&pn=PhysioByHarish&am=${selectedProduct.price}&cu=INR`} className="flex-1 py-2 px-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center justify-center transition-colors">
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">PhonePe</span>
+                    </a>
+                    <a href={`paytmmp://pay?pa=divyamsk21@okaxis&pn=PhysioByHarish&am=${selectedProduct.price}&cu=INR`} className="flex-1 py-2 px-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center justify-center transition-colors">
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Paytm</span>
+                    </a>
+                  </div>
+
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-2 font-medium">OR SCAN QR CODE</p>
+                  <div className="w-40 h-40 mx-auto bg-white rounded-xl flex items-center justify-center p-2 mb-3 shadow-sm border border-slate-200">
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=divyamsk21@okaxis&pn=PhysioByHarish&am=${selectedProduct.price}&cu=INR`} alt="UPI QR Code" className="w-full h-full object-contain" />
                   </div>
                   
                   <p className="text-sm font-bold text-foreground">UPI ID: divyamsk21@okaxis</p>
