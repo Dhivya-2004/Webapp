@@ -137,7 +137,7 @@ export default function StorePage() {
       size: selectedProduct.selectedSize || null,
       price,
       payment_method: method === 'UPI' ? `UPI (Txn: ${txnId})` : method,
-      status: 'Ordered',
+      status: method === 'ONLINE' ? 'Pending Payment' : 'Ordered',
     };
 
     const { data: insertedData, error } = await supabase.from('purchases').insert([newPurchase]).select();
@@ -188,8 +188,9 @@ export default function StorePage() {
         name: 'PhysioByHarish',
         description: `Purchase of ${selectedProduct.name}`,
         order_id: orderData.id,
-        handler: function (response: any) {
-          // Payment was successful, Razorpay handles webhook
+        handler: async function (response: any) {
+          // Fallback update in case webhook is delayed or missing
+          await supabase.from('purchases').update({ status: 'Paid', payment_method: `Razorpay (Txn: ${response.razorpay_payment_id})` }).eq('id', purchase_id);
           window.location.href = `/store/success?payment_id=${response.razorpay_payment_id}`;
         },
         prefill: {
@@ -203,7 +204,8 @@ export default function StorePage() {
       };
 
       const paymentObject = new (window as any).Razorpay(options);
-      paymentObject.on('payment.failed', function (response: any) {
+      paymentObject.on('payment.failed', async function (response: any) {
+        await supabase.from('purchases').update({ status: 'Failed' }).eq('id', purchase_id);
         alert(`Payment failed: ${response.error.description}`);
       });
       paymentObject.open();

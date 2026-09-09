@@ -43,7 +43,8 @@ export default function MyOrdersPage() {
           .order('created_at', { ascending: false });
 
         if (purchases) {
-          setOrders(purchases.map(p => {
+          const validPurchases = purchases.filter(p => p.status !== 'Pending Payment' && p.status !== 'Failed');
+          setOrders(validPurchases.map(p => {
             const productInfo = mockProducts.find(m => m.id === p.product_id);
             return {
               ...p,
@@ -84,7 +85,8 @@ export default function MyOrdersPage() {
         .order('created_at', { ascending: false });
         
       if (purchases) {
-        setOrders(purchases.map(p => {
+        const validPurchases = purchases.filter(p => p.status !== 'Pending Payment' && p.status !== 'Failed');
+        setOrders(validPurchases.map(p => {
           const productInfo = mockProducts.find(m => m.id === p.product_id);
           return {
             ...p,

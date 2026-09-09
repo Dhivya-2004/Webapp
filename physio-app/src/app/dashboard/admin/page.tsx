@@ -86,15 +86,18 @@ export default function AdminDashboard() {
 
       const { data: purs } = await supabase.from('purchases').select(`
         *,
-        profiles (name, email)
+        profiles (name, email, phone, address)
       `).order('created_at', { ascending: false });
       if (purs) {
-        setPurchases(purs.map((p: any) => ({
+        const validPurchases = purs.filter((p: any) => p.status !== 'Pending Payment' && p.status !== 'Failed');
+        setPurchases(validPurchases.map((p: any) => ({
           ...p,
           productName: p.product_name,
           purchasedAt: p.created_at,
           patientName: p.profiles?.name || 'Unknown',
-          patientEmail: p.profiles?.email || 'Unknown'
+          patientEmail: p.profiles?.email || 'Unknown',
+          patientPhone: p.profiles?.phone || 'Unknown',
+          patientAddress: p.profiles?.address || 'Unknown'
         })));
       }
 
@@ -774,7 +777,13 @@ export default function AdminDashboard() {
                         </td>
                         <td className="py-3">
                           <div className="font-semibold text-foreground">{purchase.patientName}</div>
-                          <div className="text-slate-500 text-xs">{purchase.patientEmail}</div>
+                          <div className="text-slate-500 text-xs mt-0.5">{purchase.patientEmail}</div>
+                          <div className="text-slate-500 text-xs mt-0.5 flex items-center gap-1">
+                            <span>📞</span> {purchase.patientPhone}
+                          </div>
+                          <div className="text-slate-500 text-xs mt-0.5 truncate max-w-[200px]" title={purchase.patientAddress}>
+                            📍 {purchase.patientAddress}
+                          </div>
                         </td>
                         <td className="py-4">
                           <span className={purchase.status?.startsWith('Cancelled') ? 'line-through text-slate-400' : 'text-emerald-600 font-bold'}>
