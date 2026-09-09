@@ -67,6 +67,8 @@ export default function AdminDashboard() {
   const [loginError, setLoginError] = useState('');
 
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -131,10 +133,26 @@ export default function AdminDashboard() {
     }
   };
 
-  const doctors = registeredUsers.filter((u) => u.role === 'doctor');
-  const nurses = registeredUsers.filter((u) => u.role === 'nurse');
-  const patients = registeredUsers.filter((u) => u.role === 'patient');
-  const totalRevenue = purchases.reduce((sum, p) => (p.status?.startsWith('Cancelled') ? sum : sum + p.price), 0);
+  const isWithinDateRange = (dateString?: string) => {
+    if (!dateString) return true;
+    const date = new Date(dateString);
+    if (fromDate && date < new Date(fromDate)) return false;
+    if (toDate) {
+      const to = new Date(toDate);
+      to.setHours(23, 59, 59, 999);
+      if (date > to) return false;
+    }
+    return true;
+  };
+
+  const filteredUsers = registeredUsers.filter(u => isWithinDateRange(u.registeredAt));
+  const filteredPurchases = purchases.filter(p => isWithinDateRange(p.purchasedAt));
+  const filteredAppointments = appointments.filter(a => isWithinDateRange(a.bookedAt));
+
+  const doctors = filteredUsers.filter((u) => u.role === 'doctor');
+  const nurses = filteredUsers.filter((u) => u.role === 'nurse');
+  const patients = filteredUsers.filter((u) => u.role === 'patient');
+  const totalRevenue = filteredPurchases.reduce((sum, p) => (p.status?.startsWith('Cancelled') ? sum : sum + p.price), 0);
 
   const handleRemoveUser = async (id: string) => {
     const { error } = await supabase.from('profiles').delete().eq('id', id);
@@ -223,15 +241,15 @@ export default function AdminDashboard() {
     }
   };
 
-  const pendingAppointments = appointments.filter(a => a.status === 'pending').length;
+  const pendingAppointments = filteredAppointments.filter(a => a.status === 'pending').length;
 
   const tabs: { id: Tab; label: string; emoji: string }[] = [
     { id: 'overview', label: 'Overview', emoji: '📊' },
     { id: 'doctors', label: `Doctors (${doctors.length})`, emoji: '🩺' },
     { id: 'nurses', label: `Nurses (${nurses.length})`, emoji: '👩‍⚕️' },
     { id: 'patients', label: `Patients (${patients.length})`, emoji: '🧑‍🦽' },
-    { id: 'purchases', label: `Purchases (${purchases.length})`, emoji: '🛒' },
-    { id: 'appointments', label: `Appointments (${appointments.length})`, emoji: '📅' },
+    { id: 'purchases', label: `Purchases (${filteredPurchases.length})`, emoji: '🛒' },
+    { id: 'appointments', label: `Appointments (${filteredAppointments.length})`, emoji: '📅' },
   ];
 
   if (!isAuthenticated) {
@@ -287,6 +305,19 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-extrabold text-foreground">Admin Dashboard</h1>
           <p className="text-slate-500 text-sm mt-1">Manage doctors, patients and purchase records</p>
         </div>
+        <div className="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm w-full sm:w-auto">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500 ml-1">From</span>
+            <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="text-sm px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-primary w-full sm:w-auto text-slate-700 dark:text-slate-300" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500">To</span>
+            <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="text-sm px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-primary w-full sm:w-auto text-slate-700 dark:text-slate-300" />
+          </div>
+          {(fromDate || toDate) && (
+            <button onClick={() => { setFromDate(''); setToDate(''); }} className="text-xs font-bold text-slate-500 hover:text-red-500 px-2 py-1.5 transition-colors">Clear</button>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md">
             AD
@@ -303,8 +334,8 @@ export default function AdminDashboard() {
         {[
           { label: 'Total Doctors', value: doctors.length, icon: '🩺', color: 'from-blue-500 to-cyan-500', border: 'border-blue-200 dark:border-blue-800' },
           { label: 'Total Patients', value: patients.length, icon: '🧑‍🦽', color: 'from-violet-500 to-purple-500', border: 'border-violet-200 dark:border-violet-800' },
-          { label: 'Appointments', value: appointments.length, icon: '📅', color: 'from-pink-500 to-rose-500', border: 'border-pink-200 dark:border-pink-800' },
-          { label: 'Total Purchases', value: purchases.length, icon: '🛒', color: 'from-emerald-500 to-teal-500', border: 'border-emerald-200 dark:border-emerald-800' },
+          { label: 'Appointments', value: filteredAppointments.length, icon: '📅', color: 'from-pink-500 to-rose-500', border: 'border-pink-200 dark:border-pink-800' },
+          { label: 'Total Purchases', value: filteredPurchases.length, icon: '🛒', color: 'from-emerald-500 to-teal-500', border: 'border-emerald-200 dark:border-emerald-800' },
           { label: 'Pending Appts', value: pendingAppointments, icon: '⏳', color: 'from-amber-500 to-yellow-500', border: 'border-amber-200 dark:border-amber-800' },
           { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: '💰', color: 'from-amber-500 to-orange-500', border: 'border-amber-200 dark:border-amber-800' },
         ].map((stat) => (
@@ -749,7 +780,7 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {[...purchases].reverse().map((purchase) => (
+                    {[...filteredPurchases].reverse().map((purchase) => (
                       <tr key={purchase.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                         <td className="py-3 font-medium text-foreground">{purchase.productName}</td>
                         <td className="py-3">
@@ -850,18 +881,18 @@ export default function AdminDashboard() {
               <h2 className="text-lg font-bold">All Appointments</h2>
               <div className="flex gap-2 text-xs font-semibold">
                 <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full">
-                  ⏳ Pending: {appointments.filter(a => a.status === 'pending').length}
+                  ⏳ Pending: {filteredAppointments.filter(a => a.status === 'pending').length}
                 </span>
                 <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full">
-                  ✅ Approved: {appointments.filter(a => a.status === 'approved').length}
+                  ✅ Approved: {filteredAppointments.filter(a => a.status === 'approved').length}
                 </span>
                 <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full">
-                  ❌ Rejected: {appointments.filter(a => a.status === 'rejected').length}
+                  ❌ Rejected: {filteredAppointments.filter(a => a.status === 'rejected').length}
                 </span>
               </div>
             </div>
 
-            {appointments.length === 0 ? (
+            {filteredAppointments.length === 0 ? (
               <div className="text-center py-16">
                 <div className="text-5xl mb-4">📅</div>
                 <p className="text-slate-500 font-medium">No appointments booked yet</p>
@@ -881,7 +912,7 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {[...appointments].reverse().map((apt) => (
+                    {[...filteredAppointments].reverse().map((apt) => (
                       <tr key={apt.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                         <td className="py-3">
                           <div className="flex items-center gap-2">
