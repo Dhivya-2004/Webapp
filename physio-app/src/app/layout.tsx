@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { ChatSupport } from '@/components/ChatSupport';
 
 export const metadata: Metadata = {
   title: 'PhysioByHarish - Real-time Physiotherapy at Home',
@@ -28,6 +29,7 @@ export default function RootLayout({
           {children}
         </main>
         <Footer />
+        <ChatSupport />
       </body>
     </html>
   );
