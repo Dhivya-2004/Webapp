@@ -25,7 +25,7 @@ const STUDENT_YEAR_LIST = ["1st Year", "2nd Year", "3rd Year", "4th Year", "Fina
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [role, setRole] = useState<'patient' | 'doctor'>('patient');
+  const [role, setRole] = useState<'patient' | 'doctor' | 'nurse'>('patient');
   
   // Basic Info
   const [firstName, setFirstName] = useState('');

@@ -36,6 +36,8 @@ type Purchase = {
   price: number;
   patientName: string;
   patientEmail: string;
+  patientPhone?: string;
+  patientAddress?: string;
   purchasedAt: string;
   payment_method: string;
 };
