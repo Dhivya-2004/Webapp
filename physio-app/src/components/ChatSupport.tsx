@@ -23,6 +23,21 @@ const DEFAULT_QUESTIONS = [
     id: 'q3',
     text: 'How do I register as a Doctor?',
     answer: "Click 'Register' at the top of the page, select 'Doctor' as your role, and upload your credentials. Our admin will review and approve your account."
+  },
+  {
+    id: 'q4',
+    text: 'What payment methods do you accept?',
+    answer: "We accept all major UPI apps (GPay, PhonePe, Paytm) and Razorpay for online payments, as well as Cash on Delivery for some items."
+  },
+  {
+    id: 'q5',
+    text: 'What is your refund policy?',
+    answer: "For cancelled equipment orders, refunds are processed automatically and will reflect in your bank account within 5-7 business days."
+  },
+  {
+    id: 'q6',
+    text: 'Are your physiotherapists certified?',
+    answer: "Yes, absolutely! All doctors and nurses on our platform undergo a strict verification process where we check their medical degrees and certifications before they can accept appointments."
   }
 ];
 
