@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     let htmlContent = '';
 
     if (emailType === 'approved') {
-      subject = 'Your Doctor Account has been Approved! - PhysioByHarish';
+      subject = 'Your Doctor Account has been Approved! - Velora';
       htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
           <h2 style="color: #16a34a;">Congratulations Dr. ${name}!</h2>
@@ -44,12 +44,12 @@ export async function POST(request: Request) {
         </div>
       `;
     } else if (emailType === 'rejected') {
-      subject = 'Update on your Doctor Application - PhysioByHarish';
+      subject = 'Update on your Doctor Application - Velora';
       htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
           <h2 style="color: #dc2626;">Application Update for Dr. ${name}</h2>
           <p style="color: #475569; line-height: 1.6;">
-            Thank you for your interest in joining PhysioByHarish. Unfortunately, after reviewing your application, we are unable to approve your account at this time.
+            Thank you for your interest in joining Velora. Unfortunately, after reviewing your application, we are unable to approve your account at this time.
           </p>
           <p style="color: #475569; line-height: 1.6;">
             If you believe this is a mistake or wish to provide additional documentation, please reply to this email to contact support.
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     }
 
     const mailOptions = {
-      from: '"PhysioByHarish" <divyamsk21@gmail.com>',
+      from: '"Velora" <divyamsk21@gmail.com>',
       to: email,
       subject: subject,
       html: htmlContent,

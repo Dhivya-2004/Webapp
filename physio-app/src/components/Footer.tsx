@@ -4,7 +4,7 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="text-xl font-bold gradient-text mb-4">PhysioByHarish</h3>
+            <h3 className="text-xl font-bold gradient-text mb-4">Velora</h3>
             <p className="text-slate-500 dark:text-slate-400">
               Delivering premium physiotherapy services and high-quality orthopedic equipment directly to your home.
             </p>
@@ -16,7 +16,7 @@ export function Footer() {
                 <span className="mr-2">📞</span> 7639677168
               </li>
               <li className="flex items-center">
-                <span className="mr-2">✉️</span> support@physiobyharish.com
+                <span className="mr-2">✉️</span> support@Velora.com
               </li>
             </ul>
           </div>
@@ -36,7 +36,7 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 text-center text-slate-500 text-sm">
-          &copy; {new Date().getFullYear()} PhysioByHarish. All rights reserved.
+          &copy; {new Date().getFullYear()} Velora. All rights reserved.
         </div>
       </div>
     </footer>

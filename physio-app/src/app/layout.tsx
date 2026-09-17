@@ -5,7 +5,7 @@ import { Footer } from '@/components/Footer';
 import { ChatSupport } from '@/components/ChatSupport';
 
 export const metadata: Metadata = {
-  title: 'PhysioByHarish - Real-time Physiotherapy at Home',
+  title: 'Velora - Real-time Physiotherapy at Home',
   description: 'Book home visits with expert physiotherapists and purchase premium equipment.',
 };
 

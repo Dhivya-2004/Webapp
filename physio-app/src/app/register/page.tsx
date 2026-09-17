@@ -260,7 +260,7 @@ export default function RegisterPage() {
       await supabase.auth.signOut();
       showToast('Registration successful! Please wait for Admin approval to login.', 'success');
     } else {
-      showToast('Registration successful! Welcome to PhysioByHarish.', 'success');
+      showToast('Registration successful! Welcome to Velora.', 'success');
     }
 
     setTimeout(() => {
@@ -289,7 +289,7 @@ export default function RegisterPage() {
       </div>
       <div className="glass p-8 md:p-12 rounded-3xl w-full max-w-3xl shadow-2xl">
         <h1 className="text-3xl font-extrabold text-center mb-2">Create an Account</h1>
-        <p className="text-slate-500 text-center mb-8">Join PhysioByHarish and get started</p>
+        <p className="text-slate-500 text-center mb-8">Join Velora and get started</p>
 
         <form onSubmit={handleRegister} className="space-y-6">
           {/* Role Selection */}

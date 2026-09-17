@@ -185,7 +185,7 @@ export default function StorePage() {
         key: razorpayKey,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: 'PhysioByHarish',
+        name: 'Velora',
         description: `Purchase of ${selectedProduct.name}`,
         order_id: orderData.id,
         handler: async function (response: any) {
@@ -216,7 +216,7 @@ export default function StorePage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            message: `Order received for ${selectedProduct.name} at PhysioByHarish. Amount: Rs ${price}. Payment: UPI. Txn: ${txnId}`,
+            message: `Order received for ${selectedProduct.name} at Velora. Amount: Rs ${price}. Payment: UPI. Txn: ${txnId}`,
             number: '6385842977'
           })
         });
@@ -231,7 +231,7 @@ export default function StorePage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            message: `Order received for ${selectedProduct.name} at PhysioByHarish. Amount: Rs ${price}. Payment: COD.`,
+            message: `Order received for ${selectedProduct.name} at Velora. Amount: Rs ${price}. Payment: COD.`,
             number: '6385842977'
           })
         });
@@ -450,20 +450,20 @@ export default function StorePage() {
                   <p className="text-sm font-semibold mb-3 text-foreground">Tap to open App (Mobile)</p>
                   
                   <div className="flex gap-2 justify-center mb-4 px-2">
-                    <a href={`gpay://upi/pay?pa=divyamsk21@okaxis&pn=PhysioByHarish&am=${selectedProduct.price}&cu=INR`} className="flex-1 py-2 px-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center justify-center transition-colors">
+                    <a href={`gpay://upi/pay?pa=divyamsk21@okaxis&pn=Velora&am=${selectedProduct.price}&cu=INR`} className="flex-1 py-2 px-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center justify-center transition-colors">
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-200">GPay</span>
                     </a>
-                    <a href={`phonepe://pay?pa=divyamsk21@okaxis&pn=PhysioByHarish&am=${selectedProduct.price}&cu=INR`} className="flex-1 py-2 px-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center justify-center transition-colors">
+                    <a href={`phonepe://pay?pa=divyamsk21@okaxis&pn=Velora&am=${selectedProduct.price}&cu=INR`} className="flex-1 py-2 px-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center justify-center transition-colors">
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-200">PhonePe</span>
                     </a>
-                    <a href={`paytmmp://pay?pa=divyamsk21@okaxis&pn=PhysioByHarish&am=${selectedProduct.price}&cu=INR`} className="flex-1 py-2 px-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center justify-center transition-colors">
+                    <a href={`paytmmp://pay?pa=divyamsk21@okaxis&pn=Velora&am=${selectedProduct.price}&cu=INR`} className="flex-1 py-2 px-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center justify-center transition-colors">
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Paytm</span>
                     </a>
                   </div>
 
                   <p className="text-xs text-slate-400 dark:text-slate-500 mb-2 font-medium">OR SCAN QR CODE</p>
                   <div className="w-40 h-40 mx-auto bg-white rounded-xl flex items-center justify-center p-2 mb-3 shadow-sm border border-slate-200">
-                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=divyamsk21@okaxis&pn=PhysioByHarish&am=${selectedProduct.price}&cu=INR`} alt="UPI QR Code" className="w-full h-full object-contain" />
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=divyamsk21@okaxis&pn=Velora&am=${selectedProduct.price}&cu=INR`} alt="UPI QR Code" className="w-full h-full object-contain" />
                   </div>
                   
                   <p className="text-sm font-bold text-foreground">UPI ID: divyamsk21@okaxis</p>

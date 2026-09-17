@@ -22,17 +22,17 @@ export async function POST(request: Request) {
       });
 
       const mailOptions = {
-        from: `"PhysioByHarish" <${process.env.SMTP_USER}>`,
+        from: `"Velora" <${process.env.SMTP_USER}>`,
         to: contact,
         subject: 'Your OTP for Registration',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
-            <h2 style="color: #0ea5e9; text-align: center;">PhysioByHarish</h2>
+            <h2 style="color: #0ea5e9; text-align: center;">Velora</h2>
             <p>Hello,</p>
             <p>Your One Time Password (OTP) for registration is:</p>
             <h1 style="text-align: center; color: #333; letter-spacing: 5px;">${otp}</h1>
             <p>This OTP is valid for a short time. Please do not share it with anyone.</p>
-            <p>Best regards,<br/>The PhysioByHarish Team</p>
+            <p>Best regards,<br/>The Velora Team</p>
           </div>
         `,
       };
